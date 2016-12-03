@@ -43,6 +43,7 @@ a:hover {
     float: left;
     line-height: 30px;
 }
+
 .header .logotype a {
     font-size: 30px;
     font-weight: 700;
@@ -60,6 +61,7 @@ a:hover {
     padding: 0;
     list-style: none;
 }
+
 .header .menu li {
     float: left;
     margin-left: 25px;
@@ -69,6 +71,144 @@ a:hover {
 
 .header .menu li a:hover {
     border-bottom-style: dashed;
+}
+
+.content {
+    padding: 20px 0;
+}
+
+.content .gamer-data {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.gamer-data span {
+    display: inline-block;
+    padding: 0 5px;
+    font-size: 14px;
+    color: #7a8b9f;
+}
+
+.gamer-data span.name {
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.gamer-data span.name.act {
+    color: #09ab00;
+}
+
+.game-field {
+    margin-bottom: 15px;
+}
+
+.game-field .board {
+    width: 50%;
+}
+
+.game-field .board.lf {
+    float: left;
+}
+
+.game-field .board.rg {
+    float: right;
+}
+
+table.field {
+    border-collapse: collapse;
+}
+
+table.field td {
+    border: 2px solid rgba(229, 234, 255, 1);
+    position: relative
+}
+
+table.field td .box {
+    width: 28px;
+    height: 28px;
+    float: left;
+    margin: -1px;
+    text-align: center;
+    line-height: 28px;
+}
+
+table.field td .mm, table.field td .ll {
+    position: absolute;
+    z-index: -9;
+    width: 28px;
+    height: 28px;
+    top: -28px;
+
+    font-family: Georgia;
+    color: #afafaf;
+    font-weight: 700;
+    text-align: center;
+    line-height: 28px;
+    font-size: 12px;
+}
+
+table.field td .ll {
+    top: 0;
+    left: -28px
+}
+
+.list-let {
+    float: left;
+}
+
+.list-let .let {
+    margin-bottom: 10px;
+}
+
+.list-let .let:after {
+    content: " ";
+    display: block;
+    clear: both;
+}
+
+.list-let .let .box {
+    width: 24px;
+    height: 24px;
+
+    border: 2px solid rgba(229, 234, 255, 1);
+    background-color: rgba(165, 188, 208, 0.50)
+}
+
+.list-let .let span {
+    width: 26px;
+    height: 26px;
+    line-height: 26px;
+    color: #d2dee8;
+    font-weight: 700;
+    display: inline-block;
+
+    background: none;
+    border: none;
+}
+
+.game-field .board.lf .list-let {
+    margin-left: -225px
+}
+
+.game-field .board.rg .list-let {
+    margin-right: -225px;
+    float: right
+}
+
+.game-field .board.lf .list-let .let .box {
+    float: right;
+}
+
+.game-field .board.rg .list-let .let .box {
+    float: left;
+}
+
+.game-field .board.lf table.field {
+    float: left
+}
+
+.game-field .board.rg table.field {
+    float: right
 }
 
 .footer {
