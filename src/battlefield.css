@@ -1,219 +1,56 @@
-* {
-    margin: 0;
-    padding: 0;
-}
+* { margin: 0; padding: 0; }
+html, body, .container { min-height: 100%; height: 100%; }
+body { font-family: Arial, sans-serif; color: #252525; font-size: 13px; }
+a { color: #7a8b9f; text-decoration: none; }
+a:hover { border-bottom: 1px solid #A5BCD0; }
 
-html, body, .container {
-    min-height: 100%;
-    height: 100%;
-}
+.wrap { width: 970px; padding: 0 15px; margin: 0 auto; }
+.clear { clear: both; display: block; }
 
-body {
-    font-family: Arial, sans-serif;
-    color: #252525;
-    font-size: 13px;
-}
+.header { border-bottom: 1px solid #A5BCD0; padding: 20px 0; }
+.header .logotype { float: left; line-height: 30px; }
+.header .logotype a { font-size: 30px; font-weight: 700; }
+.header .logotype small { font-size: 10px; font-weight: 700; color: #afafaf; }
+.header .menu { float: right; margin: 0; padding: 0; list-style: none; }
+.header .menu li { float: left; margin-left: 25px; margin-top: 16px; font-size: 14px; }
+.header .menu li a:hover { border-bottom-style: dashed; }
 
-a {
-    color: #7a8b9f;
-    text-decoration: none;
-}
+.content { padding: 20px 0; }
+.content .gamer-data { margin-bottom: 15px; text-align: center; }
 
-a:hover {
-    border-bottom: 1px solid #A5BCD0;
-}
+.gamer-data span { display: inline-block; padding: 0 5px; font-size: 14px; color: #7a8b9f; }
+.gamer-data span.name { font-weight: 700; font-size: 16px; }
+.gamer-data span.name.act { color: #09ab00; }
 
-.wrap {
-    width: 970px;
-    padding: 0 15px;
-    margin: 0 auto;
-}
 
-.clear {
-    clear: both;
-    display: block;
-}
+.board.lf, .board.rg table, .board.rg .list-let, .board.rg .list-let .let .box, .board.lf .list-let .let span {
+    float: left }
+.board.rg, .board.lf table, .board.lf .list-let, .board.lf .list-let .let .box, .board.rg .list-let .let span {
+    float: right }
 
-.header {
-    border-bottom: 1px solid #A5BCD0;
-    padding: 20px 0;
-}
+.game-field { padding: 20px 0; background-color: rgb(135, 134, 171);  }
+.game-field .board { width: 50%; }
 
-.header .logotype {
-    float: left;
-    line-height: 30px;
-}
-
-.header .logotype a {
-    font-size: 30px;
-    font-weight: 700;
-}
-
-.header .logotype small {
-    font-size: 10px;
-    font-weight: 700;
-    color: #afafaf;
-}
-
-.header .menu {
-    float: right;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.header .menu li {
-    float: left;
-    margin-left: 25px;
-    margin-top: 16px;
-    font-size: 14px;
-}
-
-.header .menu li a:hover {
-    border-bottom-style: dashed;
-}
-
-.content {
-    padding: 20px 0;
-}
-
-.content .gamer-data {
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.gamer-data span {
-    display: inline-block;
-    padding: 0 5px;
-    font-size: 14px;
-    color: #7a8b9f;
-}
-
-.gamer-data span.name {
-    font-weight: 700;
-    font-size: 16px;
-}
-
-.gamer-data span.name.act {
-    color: #09ab00;
-}
-
-.game-field {
-    margin-bottom: 15px;
-}
-
-.game-field .board {
-    width: 50%;
-}
-
-.game-field .board.lf {
-    float: left;
-}
-
-.game-field .board.rg {
-    float: right;
-}
-
-table.field {
-    border-collapse: collapse;
-}
-
-table.field td {
-    border: 2px solid rgba(229, 234, 255, 1);
-    position: relative
-}
-
-table.field td .box {
-    width: 28px;
-    height: 28px;
-    float: left;
-    margin: -1px;
-    text-align: center;
-    line-height: 28px;
-}
-
+table.field { border-collapse: collapse; margin: 25px }
+table.field td { border: 2px solid rgba(229, 234, 255, 1); position: relative }
+table.field td .box { width: 28px; height: 28px; float: left; margin: -1px; text-align: center; line-height: 28px; }
 table.field td .mm, table.field td .ll {
-    position: absolute;
-    z-index: -9;
-    width: 28px;
-    height: 28px;
-    top: -28px;
+    position: absolute; z-index: 1; width: 28px; height: 28px; top: -28px;
+    font-family: Georgia; color: #afafaf; font-weight: 700; text-align: center; line-height: 28px; font-size: 12px; }
+table.field td .ll { top: 0; left: -28px }
+table.field td .box.let { background-color: rgba(165, 188, 208, 0.50) }
+table.field td .box.kill {
+    background: #DDE6EF no-repeat -28px 0 url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAAcCAYAAAA0u3w+AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyFpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNS1jMDIxIDc5LjE1NDkxMSwgMjAxMy8xMC8yOS0xMTo0NzoxNiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIChXaW5kb3dzKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpDRjMwN0VCOEM4NDcxMUU1OTM5M0RBNkE1MDVDQUVEMSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpDRjMwN0VCOUM4NDcxMUU1OTM5M0RBNkE1MDVDQUVEMSI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkNGMUMzMzI1Qzg0NzExRTU5MzkzREE2QTUwNUNBRUQxIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOkNGMUMzMzI2Qzg0NzExRTU5MzkzREE2QTUwNUNBRUQxIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+aamjFgAAAmdJREFUeNrs2E1IFGEcx/FdldlVWosiyg7WKQo6LNFFykgoL4GKEER16OUQ5kW6RZ3yUKcugVJLJEKIHSSiRKUoO0UvaChSInSIXpBa1y13Y3fW6fvIXxi2nX1zwJ1lHviwLzPzzPyet9lZr2EYnnIuFZ4yL25AN2Cxxeu10oKNWbZn5qAe/Ixh1ObYr8apQ3QKAQkZsNhnK1qdPAcHcVBCbkjrMfU6hJdODjgAdYM+JCG3oBeVsu0bvudTUVUhZz3cdHT17THsxhtMI/7qxTO7wql6w3iNBjRiTi1LuI0WNOVbWVWBJ1cteAPNSOEi7qMPCwXWFcRxLEqYD0hiGRPYbtp3k7x2YCbf4VlMwHbVkSdPtCd9Pl8wkUhMj449Px+ORL7y/cMC65qUBeW0zLk6CabC3sU1i+N6TQvNDmmUGbvmoFrVlgm3XzWOpmlBf031XzlJMUWNgn7sQRfqcRnXoVkccwV/cE8a5aOdi8y4ajld12dXri6VmossRDbLpF9LSUqv7ZUezFZUr92UuTgiQ9q2gEu482R41PPu/cT4o8dPPbF4PMR3v2xYXNScDMk8z1W6ZXXdafcc/IEHi9HoLHS1euKLrHJrLZNy4YN5/BA4g21yr/wpDZ+5qOfBdSE3OpMLWDLUJeXW/9/xFucphYC1GEgLEEU4Q7C3pvddTgh4AJ8whZD04j5UoE+CxHAVOjR04jeSOFLKAf1oRCDDcFV6JOA5+dxh2rYLI5hHfbaA3nX7TybLM5yUW/DjklUNOItTK08WhhEr9UUmXasMyVz71aGt9HrQ/U/GDegGdAOWQ/knwAALfSfZ0tNOqgAAAABJRU5ErkJggg=="); }
+table.field td .box.auto-null, table.field td .box.null {
+    background: no-repeat 0 0 url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAAcCAYAAAA0u3w+AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyFpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNS1jMDIxIDc5LjE1NDkxMSwgMjAxMy8xMC8yOS0xMTo0NzoxNiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIChXaW5kb3dzKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpDRjMwN0VCOEM4NDcxMUU1OTM5M0RBNkE1MDVDQUVEMSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpDRjMwN0VCOUM4NDcxMUU1OTM5M0RBNkE1MDVDQUVEMSI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkNGMUMzMzI1Qzg0NzExRTU5MzkzREE2QTUwNUNBRUQxIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOkNGMUMzMzI2Qzg0NzExRTU5MzkzREE2QTUwNUNBRUQxIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+aamjFgAAAmdJREFUeNrs2E1IFGEcx/FdldlVWosiyg7WKQo6LNFFykgoL4GKEER16OUQ5kW6RZ3yUKcugVJLJEKIHSSiRKUoO0UvaChSInSIXpBa1y13Y3fW6fvIXxi2nX1zwJ1lHviwLzPzzPyet9lZr2EYnnIuFZ4yL25AN2Cxxeu10oKNWbZn5qAe/Ixh1ObYr8apQ3QKAQkZsNhnK1qdPAcHcVBCbkjrMfU6hJdODjgAdYM+JCG3oBeVsu0bvudTUVUhZz3cdHT17THsxhtMI/7qxTO7wql6w3iNBjRiTi1LuI0WNOVbWVWBJ1cteAPNSOEi7qMPCwXWFcRxLEqYD0hiGRPYbtp3k7x2YCbf4VlMwHbVkSdPtCd9Pl8wkUhMj449Px+ORL7y/cMC65qUBeW0zLk6CabC3sU1i+N6TQvNDmmUGbvmoFrVlgm3XzWOpmlBf031XzlJMUWNgn7sQRfqcRnXoVkccwV/cE8a5aOdi8y4ajld12dXri6VmossRDbLpF9LSUqv7ZUezFZUr92UuTgiQ9q2gEu482R41PPu/cT4o8dPPbF4PMR3v2xYXNScDMk8z1W6ZXXdafcc/IEHi9HoLHS1euKLrHJrLZNy4YN5/BA4g21yr/wpDZ+5qOfBdSE3OpMLWDLUJeXW/9/xFucphYC1GEgLEEU4Q7C3pvddTgh4AJ8whZD04j5UoE+CxHAVOjR04jeSOFLKAf1oRCDDcFV6JOA5+dxh2rYLI5hHfbaA3nX7TybLM5yUW/DjklUNOItTK08WhhEr9UUmXasMyVz71aGt9HrQ/U/GDegGdAOWQ/knwAALfSfZ0tNOqgAAAABJRU5ErkJggg=="); }
 
-    font-family: Georgia;
-    color: #afafaf;
-    font-weight: 700;
-    text-align: center;
-    line-height: 28px;
-    font-size: 12px;
-}
+.list-let { margin: 25px 15px 0 15px; }
+.list-let .let { margin-bottom: 10px; }
+.list-let .let:after { content: " "; display: block; clear: both; }
+.list-let .let .box { width: 24px; height: 24px;
+    border: 2px solid rgba(229, 234, 255, 1); background-color: rgba(165, 188, 208, 0.50) }
+.list-let .let span { width: 26px; height: 26px; line-height: 26px; margin: 0 10px;
+    text-align: center; color: #d2dee8; font-weight: 700; display: inline-block;
+    background: none; border: none }
 
-table.field td .ll {
-    top: 0;
-    left: -28px
-}
-
-.list-let {
-    float: left;
-}
-
-.list-let .let {
-    margin-bottom: 10px;
-}
-
-.list-let .let:after {
-    content: " ";
-    display: block;
-    clear: both;
-}
-
-.list-let .let .box {
-    width: 24px;
-    height: 24px;
-
-    border: 2px solid rgba(229, 234, 255, 1);
-    background-color: rgba(165, 188, 208, 0.50)
-}
-
-.list-let .let span {
-    width: 26px;
-    height: 26px;
-    line-height: 26px;
-    color: #d2dee8;
-    font-weight: 700;
-    display: inline-block;
-
-    background: none;
-    border: none;
-}
-
-.game-field .board.lf .list-let {
-    margin-left: -225px
-}
-
-.game-field .board.rg .list-let {
-    margin-right: -225px;
-    float: right
-}
-
-.game-field .board.lf .list-let .let .box {
-    float: right;
-}
-
-.game-field .board.rg .list-let .let .box {
-    float: left;
-}
-
-.game-field .board.lf table.field {
-    float: left
-}
-
-.game-field .board.rg table.field {
-    float: right
-}
-
-.footer {
-    border-top: 1px solid #A5BCD0;
-    margin-top: -61px;
-    padding: 20px 0;
-    line-height: 20px;
-}
+.footer { border-top: 1px solid #A5BCD0; margin-top: -61px; padding: 20px 0; line-height: 20px; }
