@@ -1,5 +1,6 @@
 * { margin: 0; padding: 0; }
-html, body, .container { min-height: 100%; height: 100%; }
+html, body { height: 100% }
+.container { min-height: 100%; }
 body { font-family: Arial, sans-serif; color: #252525; font-size: 13px; }
 a { color: #7a8b9f; text-decoration: none; }
 a:hover { border-bottom: 1px solid #A5BCD0; }
@@ -53,4 +54,21 @@ table.field td .box.auto-null, table.field td .box.null {
     text-align: center; color: #d2dee8; font-weight: 700; display: inline-block;
     background: none; border: none }
 
-.footer { border-top: 1px solid #A5BCD0; margin-top: -61px; padding: 20px 0; line-height: 20px; }
+.game-log { display: block; max-height: 300px; padding: 0 15px; margin-bottom: 25px; overflow-y: auto }
+.game-log ul { width: 100%; margin: 0; padding: 0; list-style: none }
+.game-log ul li { display: block; padding: 7px 0; border-bottom: 1px solid #cacaca }
+.game-log ul li.new-game { text-align: center; font-weight: 700; font-size: 13px; color: #fff; background-color: #7a8b9f }
+
+.game-log ul li:last-child { border-bottom: none }
+.game-log span { display: inline-block; font-size: 13px; color: #7a8b9f }
+.game-log span.point, .game-log span.type { width: 60px }
+.game-log span.point { font-weight: 700 }
+.game-log span.type { margin: 0 10px; font-size: 12px; padding: 2px 0; text-align: center; border-radius: 2px; font-weight: 700 }
+.game-log span.name { font-size: 14px }
+.game-log span.time { float: right; font-weight: 700 }
+.game-log span.type.kil { background-color: #d9534f; color: #fff }
+.game-log span.type.war { background-color: #f0ad4e; color: #fff }
+
+.clearFooter { height: 61px }
+.footer { margin-top: -61px; font-size: 13px; font-weight: 700 }
+.footer .wrap { border-top: 1px solid #A5BCD0; padding: 20px 0; line-height: 20px; }
