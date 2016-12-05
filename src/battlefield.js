@@ -1,108 +1,149 @@
 (function (window) {
     'use strict';
 
-    /**
-     * Игровой клас
-     * @constructor
-     */
-    function Battlefield() {
-
+    function Battlefield(options) {
         this.startGame();
     }
 
     Battlefield.prototype = {
         startGame: function () {
             try {
-
                 var F = new Field();
-                F.setLet();
+                F.setBarriers();
 
             } catch (e) {
-                this.showError(e);
+                console.log(e);
             }
-        },
-
-        showError: function (error) {
-            console.log(error)
         }
     };
 
-
     function Field() {
-        var keys = opt.fName;
+        if (!opt.fName instanceof Array)
+            throw new SyntaxError('Не корректное название игрового поля');
 
-        if (keys instanceof Array) {
-            keys.forEach(function (key) {                       // создаю игровые поля
-                field[key] = new Array(opt.fSize.h);
+        opt.fName.forEach(function (key) {
+            fields[key] = new Array(opt.fSize.h);
 
-                for (var h = 1; h <= opt.fSize.h; h++) {        // по горизонтали
-                    field[key][h] = new Array(opt.fSize.v);
+            for (var h = 0; h < opt.fSize.h; h++) {
+                fields[key][h] = new Array(opt.fSize.v);
 
-                    for (var v = 1; v <= opt.fSize.v; v++) {    // по вертикали
-                        field[key][h][v] = opt.tPoint.DEF;
-                    }
+                for (var v = 0; v < opt.fSize.v; v++) {
+                    fields[key][h][v] = opt.tPoint.DEF;
                 }
-            });
-
-        }
-        else throw new SyntaxError('Получен не корректный список названий игровых полей');
+            }
+        });
     }
 
     Field.prototype = {
-        setLet: function () {
-            var maxIteration = field.length * 100,
-                point = opt.let;
+        setBarriers: function () {
+            var maxIteration = opt.fName.length * 100;
 
-            if (point instanceof Array) {
-                
+            console.log(maxIteration);
+
+            if (!opt.barriers instanceof Array)
+                throw new SyntaxError('Не корректный список караблей');
+
+            for (var key in fields) {
+                opt.barriers.forEach(function (barrier) {
+                    var cel = barrier[0],
+                        ctn = barrier[1];
+
+                    for (var c = 0; c < ctn; c++) {
+                        fields[key] = pointInField(cel, fields[key]);
+                    }
+                })
             }
-            else throw SyntaxError('Получен не корректный список кораблей');
+
+            // private method....................
+            // ..................................
+
+            function pointInField(cel, field) {
+
+                if (maxIteration > 0) maxIteration--;
+                else throw new RangeError('Чего то я залип в рекурсии, может стоит изменить параметры??');
+
+                var sPoint = [],
+                    x = h.rand(0, opt.fSize.h),
+                    y = h.rand(0, opt.fSize.v);
+                var posHorizont = h.rand(1, 2) % 2 ? true : false;
+                
+                for (var i = 0; i < cel; i++) {
+                    var pX = x, pY = y;
+                    
+                    if (posHorizont) pY = y + i;
+                    else pX = x + i;
+                    
+                    if (checkPoint(pX, pY, field))
+                    {
+                        sPoint.push([pX, pY]);
+                    }
+                    else 
+                        return pointInField(cel, field);
+                }
+                
+                sPoint.forEach(function (point) {
+                    var x = point[0],
+                        y = point[1];
+
+                    console.log(point);
+
+                    // размещаем препидствие (корабль) на игровое поле
+                    field[x][y] = opt.tPoint.LET;
+                });
+
+                return field;
+            }
+            
+            function checkPoint(x, y, field) {
+                var cP = [[-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1]],
+                    pX = 0, pY = 0;
+
+                if (x >= 0 && x <= opt.fSize.h && y >= 0 && y <= opt.fSize.v && field[x][y] == opt.tPoint.DEF) {
+
+                    cP.forEach(function (check) {
+                        pX = x + check[0];
+                        pY = y + check[1];
+
+                        console.log(pX+'x'+pY+' == ' + typeof field[pX][pY] + ' :: ' + field[pX][pY]);
+
+                        if (
+                            pX >= -1 && pX <= opt.fSize.h + 1 &&
+                            pY >= -1 && pY <= opt.fSize.v + 1 &&
+                            (field[pX][pY] == opt.tPoint.DEF || field[pX][pY] == 'undefined')
+                        ) {
+                            // ..
+                        } else return false;
+                    });
+                    return true;
+
+                }
+                return false;
+            }
         }
     };
 
-    // игровые поля
-    var field = {};
-
-    // опции игры
-    var opt = {
-        // игровые контейнеры
-        fields: false,
-        players: false,
-        status: false,
-
-        // названия игровых полей
-        fName: ['FUser', 'FEnemy'],
-
-        // размер игрового поля
-        fSize: {
-            h: 10,          // кол-во клеток по горизонтали
-            v: 10           // кол-во клеток по вертикали
-        },
-
-        // маркеры полей (string|number)
-        marker: {
-            h: 'string',  // ряд
-            v: 'number'   // столбец
-        },
-
-        // значение игровой клетки
-        tPoint: {
-            DEF: 0,         // пустое поле
-            LET: 1,         // часть корабля
-            KIL: 2,         // подбитая часть корабля
-            NUL: 3          // выстрел мимо
-        },
-
-        // корабли [<кол.клеток>, <кол.штук>]
-        let: [              // [<кол.клеток>, <кол.штук>]
-            [4, 1], [3, 2], [2, 3], [1, 4]
-        ],
-
-        // выводить подсказки
-        helpPoint: true
-    };
-
-    // для быстрого доступа
+    var fields = {},
+        opt = {
+            fName: ['FUser', 'FEnemy'],
+            fSize: {
+                h: 10,          // кол-во клеток по горизонтали
+                v: 10           // кол-во клеток по вертикали
+            },
+            helpPoint: true,    // устанавливать подсказки
+            marker: {
+                h: 'string',  // ряд
+                v: 'number'   // столбец
+            },
+            tPoint: {
+                DEF: 0,         // пустое поле
+                LET: 1,         // часть корабля
+                KIL: 2,         // подбитая часть корабля
+                NUL: 3          // выстрел мимо
+            },
+            barriers: [              // [<кол.клеток>, <кол.штук>]
+                [4, 1], [3, 2], [2, 3], [1, 4]
+            ]
+        };
     var h = {
         rand: function (min, max) {
             var min = min || 0,
@@ -117,6 +158,27 @@
                 return h.getLetter(key - alphabet.length, (operand == '' ? 1 : operand + 1));
 
             return alphabet[key - 1] + operand;
+        },
+
+        printField: function(field) {
+            var str = '';
+
+            for (var i = 0; i < opt.fSize.h; i++) {
+
+                for (var key in field) {
+                    var hField = field[key][i];
+
+                    hField.forEach(function (item) {
+                        str += item + ' ';
+                    });
+
+                    str += "\t\t";
+                }
+
+                str += "\n";
+            }
+
+            console.log(str);
         }
     };
 
