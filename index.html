@@ -800,7 +800,11 @@
 
 
 <script type="text/javascript">
-    var BF = new Battlefield();
+    var BF = new Battlefield({
+        fieldSize: {
+            h: 10, v: 10
+        }
+    });
     BF.run();
 </script>
 </body>

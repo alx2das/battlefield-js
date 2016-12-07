@@ -28,10 +28,19 @@
         };
 
     var Battlefield = function (config) {
-
+        
         if (__instances instanceof Battlefield)
             return __instances;
         __instances = this;
+
+
+        if (typeof config == 'object') {
+            for (var k in __default)
+                opt[k] = config.hasOwnProperty(k) ? config[k] : __default[k];
+
+            opt = Object.assign(opt, __config);
+        }
+        else opt = Object.assign(__default, __config);
     };
 
     Battlefield.prototype = {
