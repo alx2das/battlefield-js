@@ -30,6 +30,7 @@ a:hover { border-bottom: 1px solid #A5BCD0; }
     float: right }
 
 .game-field { padding: 20px 0; background-color: rgb(135, 134, 171);  }
+.game-field:after { content: " "; clear: both; display: block }
 .game-field .board { width: 50%; }
 
 table.field { border-collapse: collapse; margin: 25px }
