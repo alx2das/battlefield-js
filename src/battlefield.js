@@ -22,7 +22,7 @@
             helpPoint: true
         },
         _defaultPrivate = {
-            fName: ['FUser'], // ['FUser', 'FBrain'],
+            fName: ['FUser', 'FBrain'],
             tPoint: {
                 DEF: 0,
                 BAR: 1,
@@ -31,7 +31,7 @@
             }
         };
 
-    var ui = {},
+    var ui,
         fList = {};
 
 
@@ -101,6 +101,9 @@
      */
     Battlefield.prototype.run = function () {
         try {
+            ui = new GameUI(options);
+            document.querySelector(options.containerField).innerHTML = '';
+
             var F = new Field({
                 fName: options.fName,
                 fSize: options.fSize,
@@ -110,12 +113,11 @@
 
             var fields = F
                 .createField()
-                .setBarrier(function (field, fKey) {
-
+                .setBarrier(function(field, fKey){
+                    ui.createFieldHTML(field, fKey);
                 });
-            // h.printFieldsConsole(fields);
 
-            // console.log(F);
+            new Battle(fields, options);
 
             return null;
         } catch (e) {
@@ -140,7 +142,7 @@
                 fBarrier: [[5, 1], [4, 2], [3, 3], [2, 4], [1, 5]]
             },
             hard: {
-                fieldSize: {h: 20, v: 15},
+                fSize: {h: 15, v: 20},
                 fBarrier: [[6, 1], [5, 2], [4, 3], [3, 4], [2, 5], [1, 6]]
             }
         };
@@ -148,8 +150,8 @@
         if (typeof level[type] == 'object') {
             var nLevel = level[type];
 
-            opt.fieldSize = nLevel.fieldSize;
-            opt.fieldBarrier = nLevel.fieldBarrier;
+            options.fSize = nLevel.fSize;
+            options.fBarrier = nLevel.fBarrier;
 
             return this;
         }
@@ -158,6 +160,12 @@
 
 
     // *****************************************************************************************************************
+    /**
+     * Отвечает за работу с игровыми полями
+     *
+     * @param conf
+     * @constructor
+     */
     function Field(conf) {
         if (!conf.fName instanceof Array || conf.fName.length == 0)
             throw new Error(h.getMessage('error_field_name'));
@@ -183,7 +191,7 @@
      * Создает игровое согласно установленным параметрам
      * установленным в конструкторе класса
      *
-     * @returns {Field}
+     * @returns {Field}             Вернет обьект класса
      */
     Field.prototype.createField = function () {
         var self = this;
@@ -204,7 +212,16 @@
         return this;
     };
 
-    Field.prototype.setBarrier = function () {
+    /**
+     * Устанавливает все корабли на игровые поля.
+     * После того как корабли будут установленны будет вызван callback с параметрами:
+     *  > @param {?array}   field   массив игрового поля кораблями
+     *  > @param {?string}  fKey    ключ игрового поля из options.fName
+     *
+     * @param callback(field, fKey)
+     * @returns {{?array}|*}        Вернет список игровых полей с установленными кораблями
+     */
+    Field.prototype.setBarrier = function (callback) {
         var self = this,
             maxIterations = self.fName.length * 100;
 
@@ -215,14 +232,13 @@
                 var cell = ship[0],
                     ctn = ship[1];
 
-                for (var c = 0; c < ctn; c++) {
-                    console.log(cell + ' = установка корабля');
+                for (var c = 0; c < ctn; c++)
                     field = shipInField(cell, field);
-                    console.log('>> Корабль успешно установлен' + "\n\n");
-                }
             });
 
             self.fList[fKey] = field;
+            if (typeof callback == 'function')
+                callback(field, fKey);
         });
 
         return self.fList;
@@ -231,6 +247,7 @@
         // private method....................
         // ..................................
 
+        // установит корабль на игровое поле
         function shipInField(cell, field) {
             if (maxIterations > 0) maxIterations--;
             else throw new Error(h.getMessage('error_max_iterations'));
@@ -247,66 +264,52 @@
                 if (posHorizontal) pX = x + i;
                 else pY = y + i;
 
-                if (checkPoint(pX, pY, field)) {
+                if (checkPoint(pX, pY, field))
                     sPoints.push([pX, pY]);
-                } else {
-                    console.log('break!');
-                    return shipInField(cell, field);
-                }
+                else return shipInField(cell, field);
             }
 
-            var str = ">>\t\t["+x+"x"+y+"]: {";
             sPoints.forEach(function (point) {
                 var x = point[0],
                     y = point[1];
 
-                str += "["+x+"x"+y+"]";
                 field[x][y] = self.tPoint.BAR;
             });
-            str += "}";
-            console.log(str);
 
-            h.printFieldsConsole(field);
             return field;
         }
 
+        // проверяет выбранную точку + ее окружение
         function checkPoint(x, y, field) {
             var cP = [[-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1]],
                 pX = 0, pY = 0;
             var sX = self.fSize.v - 1,
                 sY = self.fSize.h - 1;
 
-            if (x < 0 || x > sX || y < 0 || y > sY) {
-                console.log(">> \t point["+x+"x"+y+"]:size["+sX+"x"+sY+"] - ЗА ГРАНЬЮ ПОЛЯ");
+            if (x < 0 || x > sX || y < 0 || y > sY)
                 return false;
-            }
 
-            if (field[x][y] !== self.tPoint.DEF) {
-                console.log(">> \t point["+x+"x"+y+"]:size["+sX+"x"+sY+"] - ТОЧКА ЗАНЯТА");
+            if (field[x][y] !== self.tPoint.DEF)
                 return false;
-            }
 
             for (var i = 0; i < cP.length; i++) {
                 pX = x + cP[i][0];
                 pY = y + cP[i][1];
 
                 if (pX >= 0 && pX <= sX && pY >= 0 && pY <= sY) {
-                    console.log(">> \t point["+x+"x"+y+"]:size["+sX+"x"+sY+"] == ["+pX+"x"+pY+"] - ТОЧКА ПРОВЕРКИ В ПОЛЕ");
-                    if (field[pX][pY] != self.tPoint.DEF) {
-                        console.log(">> \t point["+x+"x"+y+"]:size["+sX+"x"+sY+"] == ["+pX+"x"+pY+"] - ТОЧКА ПРОВЕРКИ В ПОЛЕ >> ЗАНЯТА");
+                    if (field[pX][pY] != self.tPoint.DEF)
                         return false;
-                    }
                 }
             }
-            
+
             return true;
         }
     };
 
 
     // *****************************************************************************************************************
-    function Battle(conf) {
-
+    function Battle(fields, options) {
+        console.log("\n>\tИгра создана! Начинаем бомбить!");
     }
 
     Battle.prototype.game = function (player) {
@@ -325,16 +328,17 @@
 
     };
 
-    Battle.prototype.AIShot = function (point, fKey) {
-
-    };
-
 
     // *****************************************************************************************************************
     function GameUI(conf) {
-        this.containerField = conf.field.length > 0 ? document.querySelector(conf.field) : false;
-        this.containerLog = conf.log.length > 0 ? document.querySelector(conf.log) : false;
-        this.containerStatus = conf.status.length > 0 ? document.querySelector(conf.status) : false;
+        for (var opt in conf)
+            this[opt] = conf[opt];
+
+        this.containerField = document.querySelector(this.containerField);
+        this.containerLog = document.querySelector(this.containerLog);
+        this.containerStatus = document.querySelector(this.containerStatus);
+
+        this.posLeft = true;
 
         this.defaultHTML();
     }
@@ -343,8 +347,72 @@
 
     };
 
-    GameUI.prototype.createFieldHTML = function () {
+    GameUI.prototype.createFieldHTML = function (field, fKey) {
+        var self = this,
+            box = document.createElement('div'),
+            printShip = this.posLeft ? true : false,
+            dopAttr = this.posLeft ? 'lf' : 'rg';
 
+        var table = createHtmlField(field, fKey, printShip),
+            barrier = createBarrierInfo();
+
+        box.setAttribute('class', 'board ' + dopAttr);
+        box.innerHTML = table + barrier;
+        this.containerField.appendChild(box);
+
+        this.posLeft = this.posLeft ? false : true;
+
+
+        // private method....................
+        // ..................................
+
+        function createHtmlField(field, fKey, printShip) {
+            if (!field instanceof Array)
+                throw new Error(h.getMessage('error_field_invalid'));
+
+            var _ship = printShip || false,
+                table = '';
+
+            table += '<table class="field ' + fKey + '">';
+            for (var x = 0; x < field.length; x++) {
+                table += '<tr>';
+                for (var y = 0; y < field[x].length; y++) {
+                    var mm = '', ll = '';
+
+                    if (self.marker !== false && typeof self.marker == 'object') {
+                        var txtMM = typeof self.marker.v != 'undefined' ? (self.marker.v != 'string' ? h.getLetter(y) : (y + 1)) : (y + 1),
+                            txtLL = typeof self.marker.h != 'undefined' ? (self.marker.h != 'string' ? h.getLetter(x) : (x + 1)) : (x + 1);
+
+                        mm = x == 0 ? '<div class="mm">' + txtMM + '</div>' : '';
+                        ll = y == 0 ? '<div class="ll">' + txtLL + '</div>' : '';
+                    }
+
+                    var ship = _ship ? (field[x][y] == self.tPoint.BAR ? ' let' : '') : '';
+                    table += '<td>' + mm + ll + '<div class="box' + ship + '"></div></td>';
+                }
+                table += '</tr>';
+            }
+            table += '</table>';
+
+            return table;
+        }
+
+        function createBarrierInfo() {
+            var str = '';
+
+            self.fBarrier.forEach(function (ship) {
+                var box = '',
+                    cell = ship[0],
+                    ctn = ship[1];
+
+                for (var c = 0; c < cell; c++)
+                    box += '<div class="box"></div>';
+
+                str += '<div class="let"><span>x' + ctn + '</span>' + box + '</div>';
+            });
+
+            return '<div class="list-let">' + str + '</div>';
+        }
     };
 
     GameUI.prototype.setFullBarrier = function () {
@@ -383,6 +451,7 @@
             var mess = {
                 error_field_name: 'Не верно указаны названия игровых полей',
                 error_field_size: 'Неверно установлен размер игрового поля',
+                error_field_invalid: 'Не могу напечатать игровое поле, неверный формат',
                 error_barrier_type: 'Неверно указан список кораблей',
                 error_point_type: 'Не установлены типы содержимого',
                 error_max_iterations: 'Чего то я залип в рекурсии, может стоит изменить параметры??'
