@@ -315,6 +315,7 @@
             throw new Error(h.getMessage('error_ui_instance'));
 
         this.ui = ui;
+        this.options = options;
 
         this.fields = fields;
 
@@ -351,18 +352,30 @@
 
             var Y = event.target.parentNode.cellIndex + 1,
                 X = event.target.parentNode.parentNode.rowIndex + 1,
-                key = self.enemyKey;
-
-            console.log("[" + X + "x" + Y + "]\t>>> Выполнен ход игрока!");
-
-            var _check = self.shot([X, Y], key);
+                fKey = self.enemyKey;
+            var _check = self.shot([X, Y], fKey);
 
             if (typeof _check == "boolean") {
+                if (_check) {
+                    self.fields[fKey][X][Y] = self.options.tPoint.KIL;
+                    var _isKill = self.isKill([X, Y], fKey);
 
+                    if (typeof _isKill == "boolean") {
+                        self.ui.setHelpMarker([X, Y], fKey);
+                        self.ui.printLog([X, Y], self.options.tPoint.KIL, fKey);
+                    } else {
+                        _isKill.forEach(function (point) {
+                            self.ui.setMarker(point, self.options.tPoint.KIL, fKey, true);
+                        });
+                        self.ui.printLog([X, Y], self.options.tPoint.KIL + "_death", fKey);
+                    }
+                } else {
+                    self.fields[fKey][X][Y] = self.options.tPoint.NUL;
+                    self.ui.setMarker([X][Y], self.options.tPoint.NUL, fKey);
+
+                    self.game(fKey);
+                }
             }
-
-
-            self.game(self.enemyKey);
         });
     };
 
@@ -375,7 +388,28 @@
     };
 
     Battle.prototype.shot = function (point, fKey) {
+        var X = point[0] - 1,
+            Y = point[1] - 1,
+            P = this.fields[fKey][X][Y];
 
+        switch (P) {
+            case (this.options.tPoint.DEF):
+                console.log('Мимо! ' + P + " + " + fKey);
+                return false;
+            case (this.options.tPoint.BAR):
+                console.log('Ранил! ', point);
+                return true;
+            default:
+                return null;
+        }
+    };
+
+    Battle.prototype.isKill = function (point, fKey) {
+        // проверит убил или нет
+        // если убил то вернет массив точек подбитого корабля
+        // иначе - false
+
+        return false;
     };
 
 
@@ -407,7 +441,7 @@
     GameUI.prototype.createFieldHTML = function (field, fKey) {
         var self = this,
             box = document.createElement('div'),
-            printShip = this.posLeft ? true : false,
+            printShip = true, // this.posLeft ? true : false,
             dopAttr = this.posLeft ? 'lf' : 'rg';
 
         var table = createHtmlField(field, fKey, printShip),
