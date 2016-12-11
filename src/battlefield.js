@@ -101,7 +101,7 @@
      */
     Battlefield.prototype.run = function () {
         try {
-            ui = new GameUI(options);
+            var ui = new GameUI(options);
             document.querySelector(options.containerField).innerHTML = '';
 
             var F = new Field({
@@ -113,11 +113,11 @@
 
             var fields = F
                 .createField()
-                .setBarrier(function(field, fKey){
+                .setBarrier(function (field, fKey) {
                     ui.createFieldHTML(field, fKey);
                 });
 
-            new Battle(fields, options);
+            new Battle(fields, ui, options);
 
             return null;
         } catch (e) {
@@ -308,20 +308,70 @@
 
 
     // *****************************************************************************************************************
-    function Battle(fields, options) {
-        console.log("\n>\tИгра создана! Начинаем бомбить!");
+    function Battle(fields, ui, options) {
+        console.log("// Игра создана! Начинаем бомбить!");
+
+        if (!ui instanceof GameUI)
+            throw new Error(h.getMessage('error_ui_instance'));
+
+        this.ui = ui;
+
+        this.fields = fields;
+
+        this.userKey = 'FUser';
+        this.enemyKey = 'FBrain';
+
+        this.player = h.rand(1, 2) % 2 ? this.userKey : this.enemyKey;
+        this.game(this.player);
     }
 
     Battle.prototype.game = function (player) {
+        this.ui.showProgress(player);
 
+        switch (player) {
+            case (this.userKey):
+                this.userShot();
+                break;
+            case (this.enemyKey):
+                this.AIShot(player);
+                break;
+            default:
+                throw new Error(h.getMessage('error_game_not_found'));
+        }
+
+        this.player = player;
     };
 
-    Battle.prototype.playerShot = function () {
+    Battle.prototype.userShot = function () {
+        var self = this;
 
+        this.ui.clickToField(this.enemyKey, function (event) {
+            if (self.player !== self.userKey)
+                return false;
+
+            var Y = event.target.parentNode.cellIndex + 1,
+                X = event.target.parentNode.parentNode.rowIndex + 1,
+                key = self.enemyKey;
+
+            console.log("[" + X + "x" + Y + "]\t>>> Выполнен ход игрока!");
+
+            var _check = self.shot([X, Y], key);
+
+            if (typeof _check == "boolean") {
+
+            }
+
+
+            self.game(self.enemyKey);
+        });
     };
 
     Battle.prototype.AIShot = function (fKey) {
+        var self = this;
 
+        setTimeout(function () {
+            self.game(self.userKey);
+        }, 1000);
     };
 
     Battle.prototype.shot = function (point, fKey) {
@@ -424,6 +474,20 @@
         }
     };
 
+    GameUI.prototype.showProgress = function (fKey) {
+        console.log(fKey + "\t> переход хода");
+
+        this.containerStatus.querySelectorAll('.name').forEach(function (span) {
+            span.classList.remove('act');
+        });
+
+        this.containerStatus.querySelector('.name.' + fKey).classList.add('act');
+    };
+
+    GameUI.prototype.clickToField = function (fKey, callback) {
+        this.containerField.querySelector('table.field.' + fKey).onclick = callback;
+    };
+
     GameUI.prototype.setFullBarrier = function () {
 
     };
@@ -463,7 +527,9 @@
                 error_field_invalid: 'Не могу напечатать игровое поле, неверный формат',
                 error_barrier_type: 'Неверно указан список кораблей',
                 error_point_type: 'Не установлены типы содержимого',
-                error_max_iterations: 'Чего то я залип в рекурсии, может стоит изменить параметры??'
+                error_max_iterations: 'Чего то я залип в рекурсии, может стоит изменить параметры??',
+                error_ui_instance: 'Я не могу взаимодействовать с интерфейсом из за неправильно переданного параметра',
+                error_game_not_found: 'Ход не известного мне игрока',
             };
 
             return mess[type];
