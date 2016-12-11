@@ -347,6 +347,13 @@
 
     };
 
+    /**
+     * Печатает таблицу игрового поля на страницу.
+     * Поля должны передаваться по одному, с ключем. Устанавливает первым левый, потом правый.
+     *
+     * @param field {?array}
+     * @param fKey {?string}
+     */
     GameUI.prototype.createFieldHTML = function (field, fKey) {
         var self = this,
             box = document.createElement('div'),
@@ -366,6 +373,7 @@
         // private method....................
         // ..................................
 
+        // вернет html игрового поля
         function createHtmlField(field, fKey, printShip) {
             if (!field instanceof Array)
                 throw new Error(h.getMessage('error_field_invalid'));
@@ -397,6 +405,7 @@
             return table;
         }
 
+        // вернет список доступных кораблей
         function createBarrierInfo() {
             var str = '';
 
