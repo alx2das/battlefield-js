@@ -22,6 +22,10 @@
         },
         _defaultPrivate = {
             fName: ['FUser', 'FBrain'],
+            player: {
+                kUser: 'FUser',
+                kEnemy: 'FBrain'
+            },
             tPoint: {
                 DEF: 0,
                 BAR: 1,
@@ -151,6 +155,14 @@
             return this;
         }
         else throw new Error('Указан несуществующий уровень сложности');
+    };
+
+    Battlefield.prototype.setPlayerName = function (newName) {
+        if (typeof newName == "string") {
+            if (newName.length >= 3) {
+                h.__userName = newName;
+            }
+        }
     };
 
 
@@ -308,12 +320,10 @@
             throw new Error(h.getMessage('error_ui_instance'));
 
         this.ui = ui;
-        this.options = options;
 
+        this.userKey = options.player.kUser;
+        this.enemyKey = options.player.kEnemy;
         this.fields = fields;
-
-        this.userKey = 'FUser';
-        this.enemyKey = 'FBrain';
 
         this.player = h.rand(1, 2) % 2 ? this.userKey : this.enemyKey;
         this.game(this.player);
@@ -360,24 +370,24 @@
 
             if (typeof _check == "boolean") {
                 if (_check) {
-                    self.fields[fKey][X][Y] = self.options.tPoint.KIL;
-                    self.ui.setMarker([X, Y], self.options.tPoint.KIL, fKey);
+                    self.fields[fKey][X][Y] = options.tPoint.KIL;
+                    self.ui.setMarker([X, Y], options.tPoint.KIL, fKey);
 
                     var _isKill = self.isKill([X, Y], fKey);
 
                     if (typeof _isKill == "boolean") {
                         self.ui.setHelpMarker([X, Y], fKey);
-                        self.ui.printLog([X, Y], self.options.tPoint.KIL, fKey);
+                        self.ui.printLog([X, Y], options.tPoint.KIL, fKey);
                     } else {
                         _isKill.forEach(function (point) {
-                            self.ui.setMarker(point, self.options.tPoint.NUL, fKey, true);
+                            self.ui.setMarker(point, options.tPoint.NUL, fKey, true);
                         });
-                        self.ui.printLog([X, Y], self.options.tPoint.KIL + "_death", fKey);
+                        self.ui.printLog([X, Y], options.tPoint.KIL + "_death", fKey);
                     }
                 } else {
-                    self.fields[fKey][X][Y] = self.options.tPoint.NUL;
-                    self.ui.setMarker([X, Y], self.options.tPoint.NUL, fKey);
-                    self.ui.printLog([X, Y], self.options.tPoint.NUL, fKey);
+                    self.fields[fKey][X][Y] = options.tPoint.NUL;
+                    self.ui.setMarker([X, Y], options.tPoint.NUL, fKey);
+                    self.ui.printLog([X, Y], options.tPoint.NUL, fKey);
 
                     self.game(fKey);
                 }
@@ -406,9 +416,9 @@
             P = this.fields[fKey][X][Y];
 
         switch (P) {
-            case (this.options.tPoint.DEF):
+            case (options.tPoint.DEF):
                 return false;
-            case (this.options.tPoint.BAR):
+            case (options.tPoint.BAR):
                 return true;
             default:
                 return null;
@@ -481,15 +491,18 @@
 
 
     // *****************************************************************************************************************
+    /**
+     * Работа с пользовательским интерфейсом.
+     * Работа с UI осуществляется только через этот класс!
+     *
+     * @constructor
+     */
     function GameUI() {
         this.containerField = document.querySelector(options.containerField);
         this.containerLog = document.querySelector(options.containerLog);
         this.containerStatus = document.querySelector(options.containerStatus);
 
         this.posLeft = true;
-
-        this.userKey = 'FUser';
-        this.enemyKey = 'FBrain';
 
         this.defaultHTML();
     }
@@ -499,10 +512,13 @@
      */
     GameUI.prototype.defaultHTML = function () {
         if (typeof this.containerStatus == "object") {
+            var kUser = options.player.kUser,
+                kEnemy = options.player.kEnemy;
             var html =
-                '<span class="name ' + this.userKey + '">' + h.getMessage('player_' + this.userKey) + '</span>' +
+                '<span class="name ' + kUser + '">' + h.getMessage('player_' + kUser) + '</span>' +
                 '<span>&amp;</span>' +
-                '<span class="name ' + this.enemyKey + '">' + h.getMessage('player_' + this.enemyKey) + '</span>';
+                '<span class="name ' + kEnemy + '">' + h.getMessage('player_' + kEnemy) + '</span>';
+
             this.containerStatus.innerHTML = html;
         }
 
@@ -521,7 +537,7 @@
     GameUI.prototype.createFieldHTML = function (field, fKey) {
         var self = this,
             box = document.createElement('div'),
-            printShip = true, // this.posLeft ? true : false,
+            printShip = this.posLeft ? true : false,
             dopAttr = this.posLeft ? 'lf' : 'rg';
 
         var table = createHtmlField(field, fKey, printShip),
@@ -575,7 +591,6 @@
 
             options.fBarrier.forEach(function (ship) {
                 var box = '';
-
                 for (var c = 0; c < ship[0]; c++)
                     box += '<div class="box"></div>';
                 str += '<div class="let"><span>x' + ship[1] + '</span>' + box + '</div>';
@@ -697,7 +712,8 @@
                 break;
         }
 
-        var player = fKey == this.userKey ? h.getMessage('player_' + this.enemyKey) : h.getMessage('player_' + this.userKey),
+        var player = fKey == options.player.kUser
+                ? h.getMessage('player_' + options.player.kEnemy) : h.getMessage('player_' + options.player.kUser),
             __date = new Date(),
             time = __date.toLocaleTimeString(),
             marker = '';
@@ -721,6 +737,8 @@
 
     // *****************************************************************************************************************
     var h = {
+        __userName: 'Игрок',
+
         rand: function (min, max) {
             var min = min || 0,
                 max = max || 100;
@@ -744,7 +762,7 @@
                 error_max_iterations: 'Чего то я залип в рекурсии, может стоит изменить параметры??',
                 error_ui_instance: 'Я не могу взаимодействовать с интерфейсом из за неправильно переданного параметра',
                 error_game_not_found: 'Ход не известного мне игрока',
-                player_FUser: 'Игрок',
+                player_FUser: this.__userName,
                 player_FBrain: 'Компьютер',
             };
 
