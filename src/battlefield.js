@@ -4,16 +4,15 @@
     var __instances = {};
 
     var options = {},
-        _defaultPublik = {
+        _defaultPublic = {
             containerField: '.game-field',
             containerLog: '.game-log',
             containerStatus: '.gamer-data',
-
             fSize: {
                 h: 10, v: 10
             },
             fBarrier: [
-                [3, 3], [2, 4], [1, 6]  // [4, 1], [3, 2], [2, 3], [1, 4]
+                [4, 1], [3, 2], [2, 3], [1, 4]
             ],
             marker: {
                 h: 'string',
@@ -30,10 +29,6 @@
                 NUL: 3
             }
         };
-
-    var ui,
-        fList = {};
-
 
     /**
      * Это конструктор игры Battlefiel. Представлен в единственном экземпляре.
@@ -88,11 +83,11 @@
 
         // Merge config and full options
         if (typeof config == 'object') {
-            for (var key in _defaultPublik)
-                options[key] = config.hasOwnProperty(key) ? config[key] : _defaultPublik[key];
+            for (var key in _defaultPublic)
+                options[key] = config.hasOwnProperty(key) ? config[key] : _defaultPublic[key];
             options = Object.assign(options, _defaultPrivate);
         }
-        else options = Object.assign(_defaultPublik, _defaultPrivate);
+        else options = Object.assign(_defaultPublic, _defaultPrivate);
     }
 
     /**
@@ -445,8 +440,8 @@
         function checkPointToKill(point, noCheck) {
             var X = point[0],
                 Y = point[1];
-            var nX = typeof noCheck == "object" ? noCheck[0]: false,
-                nY = typeof noCheck == "object" ? noCheck[1]: false;
+            var nX = typeof noCheck == "object" ? noCheck[0] : false,
+                nY = typeof noCheck == "object" ? noCheck[1] : false;
             var dopCheck = [];
 
             for (var i = 0; i < cP.length; i++) {
@@ -486,29 +481,42 @@
 
 
     // *****************************************************************************************************************
-    function GameUI(conf) {
-        for (var opt in conf)
-            this[opt] = conf[opt];
-
-        this.containerField = document.querySelector(this.containerField);
-        this.containerLog = document.querySelector(this.containerLog);
-        this.containerStatus = document.querySelector(this.containerStatus);
+    function GameUI() {
+        this.containerField = document.querySelector(options.containerField);
+        this.containerLog = document.querySelector(options.containerLog);
+        this.containerStatus = document.querySelector(options.containerStatus);
 
         this.posLeft = true;
+
+        this.userKey = 'FUser';
+        this.enemyKey = 'FBrain';
 
         this.defaultHTML();
     }
 
+    /**
+     * Автоматически печатает html по умолчанию для блоков
+     */
     GameUI.prototype.defaultHTML = function () {
+        if (typeof this.containerStatus == "object") {
+            var html =
+                '<span class="name ' + this.userKey + '">' + h.getMessage('player_' + this.userKey) + '</span>' +
+                '<span>&amp;</span>' +
+                '<span class="name ' + this.enemyKey + '">' + h.getMessage('player_' + this.enemyKey) + '</span>';
+            this.containerStatus.innerHTML = html;
+        }
 
+        if (typeof this.containerLog == "object") {
+            this.containerLog.appendChild(document.createElement('ul'));
+        }
     };
 
     /**
      * Печатает таблицу игрового поля на страницу.
      * Поля должны передаваться по одному, с ключем. Устанавливает первым левый, потом правый.
      *
-     * @param field {?array}
-     * @param fKey {?string}
+     * @param field {?array}        Массив игрового поля
+     * @param fKey {?string}        Ключ игрового поля
      */
     GameUI.prototype.createFieldHTML = function (field, fKey) {
         var self = this,
@@ -544,14 +552,14 @@
                     var mm = '', ll = '';
 
                     if (self.marker !== false && typeof self.marker == 'object') {
-                        var txtMM = typeof self.marker.v != 'undefined' ? (self.marker.v != 'string' ? h.getLetter(y) : (y + 1)) : (y + 1),
-                            txtLL = typeof self.marker.h != 'undefined' ? (self.marker.h != 'string' ? h.getLetter(x) : (x + 1)) : (x + 1);
+                        var txtMM = typeof options.marker.v != 'undefined' ? (options.marker.v == 'string' ? h.getLetter(y) : (y + 1)) : (y + 1),
+                            txtLL = typeof options.marker.h != 'undefined' ? (options.marker.h == 'string' ? h.getLetter(x) : (x + 1)) : (x + 1);
 
                         mm = x == 0 ? '<div class="mm">' + txtMM + '</div>' : '';
                         ll = y == 0 ? '<div class="ll">' + txtLL + '</div>' : '';
                     }
 
-                    var ship = _ship ? (field[x][y] == self.tPoint.BAR ? ' let' : '') : '';
+                    var ship = _ship ? (field[x][y] == options.tPoint.BAR ? ' let' : '') : '';
                     table += '<td>' + mm + ll + '<div class="box' + ship + '"></div></td>';
                 }
                 table += '</tr>';
@@ -565,7 +573,7 @@
         function createBarrierInfo() {
             var str = '';
 
-            self.fBarrier.forEach(function (ship) {
+            options.fBarrier.forEach(function (ship) {
                 var box = '';
 
                 for (var c = 0; c < ship[0]; c++)
@@ -577,6 +585,11 @@
         }
     };
 
+    /**
+     * Выделит заголовок игрока.
+     *
+     * @param fKey {?string}        Ключ игрового поля
+     */
     GameUI.prototype.showProgress = function (fKey) {
         this.containerStatus.querySelectorAll('.name').forEach(function (span) {
             span.classList.remove('act');
@@ -585,22 +598,31 @@
         this.containerStatus.querySelector('.name.' + fKey).classList.add('act');
     };
 
+    /**
+     * Отслеживает событие клика на игровое поле.
+     *
+     * @param fKey {?string}        Ключ игрового поля
+     * @param callback {?function}  Функция будет выполнена при клике
+     */
     GameUI.prototype.clickToField = function (fKey, callback) {
         this.containerField.querySelector('table.field.' + fKey).onclick = callback;
     };
 
-    GameUI.prototype.setFullBarrier = function () {
-
-    };
-
-    GameUI.prototype.setMarker = function (point, type, fKey, auto) {
+    /**
+     *
+     * @param point {?array}        Точка выстрела, в формате [x, y]
+     * @param tPoint {?string}      Тип попадания из списка {options.tPoint}
+     * @param fKey {?string}        Ключ игрового поля
+     * @param auto {?boolean}       Автоматическая установка. Нет - по умолчанию
+     */
+    GameUI.prototype.setMarker = function (point, tPoint, fKey, auto) {
         var auto = auto || false,
             X = point[0],
             Y = point[1];
 
         var elClass = "";
 
-        switch (type) {
+        switch (tPoint) {
             case (options.tPoint.KIL):
                 elClass = 'kill';
                 break;
@@ -619,6 +641,13 @@
         box.className += ' ' + elClass;
     };
 
+    /**
+     * Петчатает на игровое поле точки подсказки.
+     * Раставляет точки по углам от попадания.
+     *
+     * @param point {?array}        Точка выстрела, в формате [x, y]
+     * @param fKey {?string}        Ключ игрового поля
+     */
     GameUI.prototype.setHelpMarker = function (point, fKey) {
         var X = point[0],
             Y = point[1],
@@ -639,8 +668,54 @@
         }
     };
 
-    GameUI.prototype.printLog = function () {
+    /**
+     * Логирует выполненный ход на страницу.
+     *
+     * @param point {?array}        Точка выстрела, в формате [x, y]
+     * @param tPoint {?string}      Тип попадания из списка {options.tPoint}
+     * @param fKey {?string}        Ключ игрового поля
+     */
+    GameUI.prototype.printLog = function (point, tPoint, fKey) {
+        var X = point[0],
+            Y = point[1];
 
+        var tPoint_class = '',
+            tPoint_name = '';
+
+        switch (tPoint) {
+            case (options.tPoint.KIL):
+                tPoint_class = 'war';
+                tPoint_name = 'ранил';
+                break;
+            case (options.tPoint.KIL + "_death"):
+                tPoint_class = 'kil';
+                tPoint_name = 'убил';
+                break;
+            case (options.tPoint.NUL):
+                tPoint_class = 'nul';
+                tPoint_name = 'мимо';
+                break;
+        }
+
+        var player = fKey == this.userKey ? h.getMessage('player_' + this.enemyKey) : h.getMessage('player_' + this.userKey),
+            __date = new Date(),
+            time = __date.toLocaleTimeString(),
+            marker = '';
+
+        marker += options.marker.h == 'string' ? h.getLetter(Y) : (Y + 1);
+        marker += "x";
+        marker += options.marker.v == 'string' ? h.getLetter(X) : (X + 1);
+
+        var html =
+            '<span class="point">' + marker + '</span>' +
+            '<span class="type ' + tPoint_class + '">' + tPoint_name + '</span>' +
+            '<span class="name">' + player + '</span>' +
+            '<span class="time">' + time + '</span>';
+
+        var li = document.createElement('li');
+        li.innerHTML = html;
+
+        this.containerLog.querySelector('ul').insertBefore(li, this.containerLog.querySelector('ul').firstChild);
     };
 
 
@@ -669,23 +744,11 @@
                 error_max_iterations: 'Чего то я залип в рекурсии, может стоит изменить параметры??',
                 error_ui_instance: 'Я не могу взаимодействовать с интерфейсом из за неправильно переданного параметра',
                 error_game_not_found: 'Ход не известного мне игрока',
+                player_FUser: 'Игрок',
+                player_FBrain: 'Компьютер',
             };
 
             return mess[type];
-        },
-
-        // dev
-        printFieldsConsole: function (field) {
-            var str = '';
-
-            for (var i = 0; i < field.length; i++) {
-                for (var j = 0; j < field[i].length; j++) {
-                    str += field[i][j] + '\t';
-                }
-                str += '\n';
-            }
-
-            console.log(str);
         }
     };
 
