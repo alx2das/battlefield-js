@@ -15,8 +15,8 @@
                 [4, 1], [3, 2], [2, 3], [1, 4]
             ],
             marker: {
-                h: 'string',
-                v: 'string'
+                h: 'number',
+                v: 'number'
             },
             helpPoint: true
         },
@@ -143,6 +143,10 @@
             hard: {
                 fSize: {h: 15, v: 20},
                 fBarrier: [[6, 1], [5, 2], [4, 3], [3, 4], [2, 5], [1, 6]]
+            },
+            dev: {
+                fSize: {h: 20, v: 20},
+                fBarrier: [[1, 6]]
             }
         };
 
@@ -157,6 +161,11 @@
         else throw new Error('Указан несуществующий уровень сложности');
     };
 
+    /**
+     * Устанавливает имя пользователя
+     *
+     * @param newName {?string}
+     */
     Battlefield.prototype.setPlayerName = function (newName) {
         if (typeof newName == "string") {
             if (newName.length >= 3) {
@@ -321,6 +330,7 @@
 
         this.ui = ui;
 
+        this.listPoint = [];
         this.userKey = options.player.kUser;
         this.enemyKey = options.player.kEnemy;
         this.fields = fields;
@@ -337,19 +347,18 @@
      */
     Battle.prototype.game = function (player) {
         this.ui.showProgress(player);
+        this.player = player;
 
         switch (player) {
             case (this.userKey):
                 this.userShot();
                 break;
             case (this.enemyKey):
-                this.AIShot(player);
+                this.AIShot(this.userKey);
                 break;
             default:
                 throw new Error(h.getMessage('error_game_not_found'));
         }
-
-        this.player = player;
     };
 
     /**
@@ -363,10 +372,17 @@
             if (self.player !== self.userKey)
                 return false;
 
-            var Y = event.target.parentNode.cellIndex,
-                X = event.target.parentNode.parentNode.rowIndex,
-                fKey = self.enemyKey;
-            var _check = self.shot([X, Y], fKey);
+            var fKey = self.enemyKey,
+                _check = null;
+
+            try {
+                var Y = event.target.parentNode.cellIndex,
+                    X = event.target.parentNode.parentNode.rowIndex;
+
+                _check = self.shot([X, Y], fKey);
+            } catch (e) {
+                self.game(self.userKey);
+            }
 
             if (typeof _check == "boolean") {
                 if (_check) {
@@ -398,9 +414,42 @@
     Battle.prototype.AIShot = function (fKey) {
         var self = this;
 
-        setTimeout(function () {
-            self.game(self.userKey);
-        }, 400);
+        if (typeof this.listPoint[fKey] == "undefined")
+            this.listPoint[fKey] = createListPoint();
+
+        var pList = this.listPoint[fKey],
+            rPoint = pList[h.rand(0, pList.length)];
+
+        var _check = this.shot(rPoint, fKey);
+        if (typeof _check == "boolean") {
+            if (_check) {
+                console.log("\t\t> ранил");
+            } else {
+                console.log("\t\t> мимо");
+
+                this.listPoint[fKey] = pList.splice(rPoint, 1);
+                this.game(fKey);
+            }
+        }
+
+        console.log(rPoint, pList.length);
+
+
+
+        function createListPoint() {
+            console.log('Расчитываю точки выстрелов');
+
+            var field = self.fields[fKey],
+                list = [];
+
+            for (var i = 0; i < field.length; i++) {
+                for (var j = 0; j < field[i].length; j++) {
+                    list.push([i, j]);
+                }
+            }
+
+            return list;
+        }
     };
 
     /**
@@ -567,7 +616,7 @@
                 for (var y = 0; y < field[x].length; y++) {
                     var mm = '', ll = '';
 
-                    if (self.marker !== false && typeof self.marker == 'object') {
+                    if (options.marker !== false && typeof options.marker == 'object') {
                         var txtMM = typeof options.marker.v != 'undefined' ? (options.marker.v == 'string' ? h.getLetter(y) : (y + 1)) : (y + 1),
                             txtLL = typeof options.marker.h != 'undefined' ? (options.marker.h == 'string' ? h.getLetter(x) : (x + 1)) : (x + 1);
 
