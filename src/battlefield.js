@@ -15,7 +15,7 @@
                 [4, 1], [3, 2], [2, 3], [1, 4]
             ],
             marker: {
-                h: 'number',
+                h: 'string',
                 v: 'number'
             },
             helpPoint: true
@@ -331,6 +331,7 @@
         this.ui = ui;
 
         this.pointShot = [];
+        this.pointKill = [];
         this.userKey = options.player.kUser;
         this.enemyKey = options.player.kEnemy;
         this.fields = fields;
@@ -349,9 +350,12 @@
         this.ui.showProgress(player);
         this.player = player;
 
+        console.log("> ["+player+"] переход хода");
+
         switch (player) {
             case (this.userKey):
-                this.userShot();
+                // this.userShot();
+                this.AIShot(this.enemyKey);
                 break;
             case (this.enemyKey):
                 this.AIShot(this.userKey);
@@ -361,6 +365,9 @@
         }
     };
 
+    /**
+     * Вешиет событие клика пользователем по игровому полю противника
+     */
     Battle.prototype.userShot = function () {
         var self = this;
 
@@ -368,13 +375,12 @@
             if (self.player !== self.userKey)
                 return false;
 
-            var fKey = self.enemyKey,
-                _check = null;
-
             try {
-                var Y = event.target.parentNode.cellIndex,
+                var fKey = self.enemyKey,
+                    Y = event.target.parentNode.cellIndex,
                     X = event.target.parentNode.parentNode.rowIndex;
 
+                console.log("\t> ["+X+","+Y+"] выстрел игрока");
                 self.shot([X, Y], fKey);
             } catch (e) {
                 self.game(self.userKey);
@@ -382,213 +388,174 @@
         });
     };
 
+    /**
+     * Искуственный интелект
+     *
+     * @param fKey
+     * @constructor
+     */
     Battle.prototype.AIShot = function (fKey) {
-        if (typeof this.pointShot[fKey] == "undefined")
-            this.pointShot[fKey] = createListPointShot();
+        var self = this,
+            point = getPointShot();
 
-        if (this.pointShot[fKey].length > 0) {
-            this.shot(getPointShot(), fKey);
-        } else {
-            console.log(">>\t\tНет больше точек для выстрела");
-        }
+        setTimeout(function () {
+            self.shot(point, fKey);
+        }, 0);
 
 
         // private method....................
         // ..................................
 
+        // случайная точка
         function getPointShot() {
-            var randKey = h.rand(0, this.pointShot[fKey].length - 1),
-                point = this.pointShot[fKey][randKey];
+            createListPointShot();
+            var point;
+
+            if (self.pointKill[fKey].length > 0)
+                point = getFinishingPoint();
+            else {
+                var rInx = h.rand(0, self.pointShot[fKey].length - 1);
+
+                point = self.pointShot[fKey][rInx];
+                self.pointShot[fKey].splice(rInx, 1);
+            }
+            return point;
+        }
+
+        // добивание...
+        function getFinishingPoint() {
+            var cP = [[-1,0], [0,-1], [1,0], [0,1]],
+                lsP = self.pointKill[fKey],
+                point = [];
+
+            if (lsP.length == 1) {
+                var X = lsP[0][0],
+                    Y = lsP[0][1],
+                    field = self.fields[fKey];
+
+                cP = h.shuffle(cP);
+                for (var i = 0; i < cP.length; i++) {
+                    var pX = X + cP[i][0],
+                        pY = Y + cP[i][1];
+
+                    if (pX >= 0 && pX < options.fSize.v && pY >= 0 && pY < options.fSize.h) {
+                        if (field[pX][pY] !== options.tPoint.NUL)
+                            return [pX,pY];
+                    }
+                }
+            } else {
+                // определяем направление...
+                var posHorizontal = lsP[0][0] == lsP[1][0],
+                    min = options.fSize.h + options.fSize.v, max = 0;
+
+                for (var i = 0; i < lsP.length; i++) {
+                    var n = posHorizontal ? lsP[i][1] : lsP[i][0];
+
+                    min = min > n ? n : min;
+                    max = max < n ? n : max;
+                }
+
+                console.log("\t\t\t> min<>max: " + min + "<>" + max);
+
+                var nP = h.rand(1, 2) % 2 ? min - 1 : max + 1;
+                point = posHorizontal ? [lsP[0][0], nP] : [nP, lsP[0][1]];
+
+                console.log("\t\t\t> Выбрана точка: ", point);
+            }
 
             return point;
         }
 
+        // конструктор AI
         function createListPointShot() {
+            if (typeof self.pointShot[fKey] !== "undefined")
+                return;
+
             var points = [];
             for (var i = 0; i < options.fSize.h; i++) {
                 for (var j = 0; j < options.fSize.v; j++)
                     points.push([j, i]);
             }
-            return points;
+
+            self.pointKill[fKey] = [];
+            self.pointShot[fKey] = points;
         }
     };
 
+    /**
+     * Осуществляет выстрел по игровому полю.
+     *
+     * @param point
+     * @param fKey
+     */
     Battle.prototype.shot = function (point, fKey) {
-        var X = point[0],
-            Y = point[1],
-            _check = this.checkPoint(point, fKey);
+        console.log('Выстрел по полю ' + fKey, point);
 
-        if (typeof _check == "boolean") {
-            if (_check) {
+        var self = this,
+            X = point[0],
+            Y = point[1];
+
+        var check = this.checkPoint(point, fKey),
+            __fKey = fKey == this.userKey ? this.enemyKey : this.userKey;
+
+        if (typeof check == "boolean") {
+            if (check) {
                 this.fields[fKey][X][Y] = options.tPoint.KIL;
                 this.ui.setMarker(point, options.tPoint.KIL, fKey);
 
-                var _isKill = this.isKill(point, fKey);
-
-                if (typeof _isKill == "boolean") {
-                    this.ui.setHelpMarker(point, fKey);
+                var isKill = this.isKill(point, fKey);
+                if (typeof isKill == "boolean") {
                     this.ui.printLog(point, options.tPoint.KIL, fKey);
+
+                    if (this.pointKill[fKey] instanceof Array)
+                        this.pointKill[fKey].push(point);
+
+                    self.ui.setHelpMarker(point, fKey, function (_point, fKey) {
+                        var _pX = _point[0],
+                            _pY = _point[1];
+
+                        if (options.helpPoint) {
+                            self.ui.setMarker(_point, options.tPoint.NUL, fKey, true);
+                            self.fields[fKey][_pX][_pY] = options.tPoint.NUL;
+                        } else {
+                            if (self.pointKill[fKey] instanceof Array) {
+                                self.fields[fKey][_pX][_pY] = options.tPoint.NUL;
+                            }
+                        }
+                    });
                 } else {
-                    for (var i = 0; i < _isKill.length; i++)
-                        this.ui.setMarker(_isKill[i], options.tPoint.NUL, fKey, true);
                     this.ui.printLog(point, options.tPoint.KIL + "_death", fKey);
+
+                    if (this.pointKill[fKey] instanceof Array)
+                        this.pointKill[fKey] = [];
+
+                    isKill.forEach(function (_point) {
+                        var _pX = _point[0],
+                            _pY = _point[1];
+
+                        if (options.helpPoint) {
+                            self.ui.setMarker(_point, options.tPoint.NUL, fKey, true);
+                            self.fields[fKey][_pX][_pY] = options.tPoint.NUL;
+                        } else {
+                            if (self.pointKill[fKey] instanceof Array) {
+                                self.fields[fKey][_pX][_pY] = options.tPoint.NUL;
+                            }
+                        }
+                    });
                 }
+
+                this.game(__fKey);
             } else {
+                this.ui.printLog(point, options.tPoint.NUL, fKey);
+
                 this.fields[fKey][X][Y] = options.tPoint.NUL;
                 this.ui.setMarker(point, options.tPoint.NUL, fKey);
-                this.ui.printLog(point, options.tPoint.NUL, fKey);
 
                 this.game(fKey);
             }
         }
+        else this.game(__fKey);
     };
-
-
-
-    /*
-    Battle.prototype.userShot = function () {
-        var self = this;
-
-        this.ui.clickToField(this.enemyKey, function (event) {
-            if (self.player !== self.userKey)
-                return false;
-
-            var fKey = self.enemyKey,
-                _check = null;
-
-            try {
-                var Y = event.target.parentNode.cellIndex,
-                    X = event.target.parentNode.parentNode.rowIndex;
-
-                _check = self.checkPoint([X, Y], fKey);
-            } catch (e) {
-                self.game(self.userKey);
-            }
-
-            if (typeof _check == "boolean") {
-                if (_check) {
-                    self.fields[fKey][X][Y] = options.tPoint.KIL;
-                    self.ui.setMarker([X, Y], options.tPoint.KIL, fKey);
-
-                    var _isKill = self.isKill([X, Y], fKey);
-
-                    if (typeof _isKill == "boolean") {
-                        self.ui.setHelpMarker([X, Y], fKey);
-                        self.ui.printLog([X, Y], options.tPoint.KIL, fKey);
-                    } else {
-                        _isKill.forEach(function (_point) {
-                            self.ui.setMarker(_point, options.tPoint.NUL, fKey, true);
-                        });
-                        self.ui.printLog([X, Y], options.tPoint.KIL + "_death", fKey);
-                    }
-                } else {
-                    self.fields[fKey][X][Y] = options.tPoint.NUL;
-                    self.ui.setMarker([X, Y], options.tPoint.NUL, fKey);
-                    self.ui.printLog([X, Y], options.tPoint.NUL, fKey);
-
-                    self.game(fKey);
-                }
-            }
-        });
-    };
-
-    Battle.prototype.AIShot = function (fKey) {
-        if (typeof this.pointShot[fKey] == "undefined")
-            this.pointShot[fKey] = createListPointShot();
-
-        if (this.pointShot[fKey].length > 0) {
-            var self = this,
-                randKey = h.rand(0, this.pointShot[fKey].length - 1),
-                point = this.pointShot[fKey][randKey];
-
-            console.log("> "+randKey+"["+point[0]+","+point[1]+"] = " + this.pointShot[fKey].length);
-
-            var _check = this.checkPoint(point, fKey);
-            if (typeof _check == "boolean") {
-                if (_check) {
-                    console.log("\t> ранил");
-
-                    this.fields[fKey][point[0]][point[1]] = options.tPoint.KIL;
-                    this.ui.setMarker(point, options.tPoint.KIL, fKey);
-
-                    var _isKill = self.isKill(point, fKey);
-                    if (typeof _isKill == "boolean") {
-                        this.ui.setHelpMarker(point, fKey);
-                        this.ui.printLog(point, options.tPoint.KIL, fKey);
-                    } else {
-                        _isKill.forEach(function (_point) {
-                            self.ui.setMarker(_point, options.tPoint.NUL, fKey, true);
-                        });
-                        this.ui.printLog(point, options.tPoint.KIL + "_death", fKey);
-                    }
-
-                    this.AIShot(fKey);
-                } else {
-                    console.log("\t> мимо");
-
-                    this.fields[fKey][point[0]][point[1]] = options.tPoint.NUL;
-                    this.ui.setMarker(point, options.tPoint.NUL, fKey);
-                    this.ui.printLog(point, options.tPoint.NUL, fKey);
-
-                    this.game(fKey);
-                }
-
-                this.pointShot[fKey].splice(randKey, 1);
-                this.game(fKey);
-            } else {
-                this.pointShot[fKey].splice(randKey, 1);
-                this.AIShot(fKey);
-            }
-        } else {
-            console.log(">>\t\tНет больше точек для выстрела");
-        }
-
-
-        // private method....................
-        // ..................................
-
-        function createListPointShot() {
-            var points = [];
-            for (var i = 0; i < options.fSize.h; i++) {
-                for (var j = 0; j < options.fSize.v; j++)
-                    points.push([j, i]);
-            }
-            return points;
-        }
-    };
-
-    Battle.prototype.shot = function (point, fKey) {
-        var X = point[0],
-            Y = point[1];
-        var _check = this.checkPoint(point, fKey);
-
-        if (typeof _check == "boolean") {
-            if (_check) {
-                this.fields[fKey][point[0]][point[1]] = options.tPoint.KIL;
-                this.ui.setMarker(point, options.tPoint.KIL, fKey);
-
-                var _isKill = self.isKill(point, fKey);
-
-                if (typeof _isKill == "boolean") {
-                    this.ui.setHelpMarker(point, fKey);
-                    this.ui.printLog(point, options.tPoint.KIL, fKey);
-                } else {
-                    _isKill.forEach(function (_point) {
-                        self.ui.setMarker(_point, options.tPoint.NUL, fKey, true);
-                    });
-                    this.ui.printLog(point, options.tPoint.KIL + "_death", fKey);
-                }
-            } else {
-                this.fields[fKey][point[0]][point[1]] = options.tPoint.NUL;
-                this.ui.setMarker(point, options.tPoint.NUL, fKey);
-                this.ui.printLog(point, options.tPoint.NUL, fKey);
-            }
-
-            this.pointShot[fKey].splice(randKey, 1);
-            this.game(fKey);
-        }
-    };
-    */
 
     /**
      * Проверяет попадание по игровому полю
@@ -634,6 +601,7 @@
         // private method....................
         // ..................................
 
+        // поиск точек попадания
         function checkPointToKill(point, noCheck) {
             var X = point[0],
                 Y = point[1];
@@ -849,7 +817,7 @@
      * @param point {?array}        Точка выстрела, в формате [x, y]
      * @param fKey {?string}        Ключ игрового поля
      */
-    GameUI.prototype.setHelpMarker = function (point, fKey) {
+    GameUI.prototype.setHelpMarker = function (point, fKey, callback) {
         var X = point[0],
             Y = point[1],
             sP = [[-1, -1], [1, -1], [1, 1], [-1, 1]],
@@ -860,11 +828,8 @@
                 nY = Y + sP[i][1];
 
             if (nX >= 0 && nX < options.fSize.v && nY >= 0 && nY < options.fSize.h) {
-                var box = this.containerField.querySelector('table.field.' + fKey)
-                    .rows[nX].cells[nY]
-                    .querySelector('.box');
-
-                box.className += ' ' + elClass;
+                if (typeof callback == "function")
+                    callback([nX, nY], fKey)
             }
         }
     };
@@ -904,9 +869,9 @@
             time = __date.toLocaleTimeString(),
             marker = '';
 
-        marker += options.marker.h == 'string' ? h.getLetter(Y) : (Y + 1);
+        marker += options.marker.h == 'string' ? h.getLetter(X) : (X + 1);
         marker += "x";
-        marker += options.marker.v == 'string' ? h.getLetter(X) : (X + 1);
+        marker += options.marker.v == 'string' ? h.getLetter(Y) : (Y + 1);
 
         var html =
             '<span class="point">' + marker + '</span>' +
@@ -930,6 +895,17 @@
                 max = max || 100;
             return parseInt(Math.random() * (max - min + 1) + min);
         },
+        shuffle: function (arr) {
+            var inx, buffer;
+            for (var i = 0; i < arr.length - 1; i++) {
+                inx = this.rand(0, arr.length - 1);
+                buffer = arr[inx];
+
+                arr[inx] = arr[arr.length - 1];
+                arr[arr.length - 1] = buffer;
+            }
+            return arr;
+        },
         getLetter: function (key, operand) {
             var operand = operand || '',
                 alphabet = "ABCDIFGHIJKLMNOPQRSTUVWXYZ";
@@ -949,7 +925,7 @@
                 error_ui_instance: 'Я не могу взаимодействовать с интерфейсом из за неправильно переданного параметра',
                 error_game_not_found: 'Ход не известного мне игрока',
                 player_FUser: this.__userName,
-                player_FBrain: 'Компьютер',
+                player_FBrain: 'Компьютер'
             };
 
             return typeof mess[type] == "string" ? mess[type] : type;
