@@ -3,8 +3,8 @@
 <head>
     <title>Battlefield</title>
 
+    <meta charset="UTF-8"/>
     <link rel="stylesheet" href="src/battlefield.css"/>
-
     <script src="src/battlefield.js"></script>
 </head>
 <body>
@@ -18,7 +18,7 @@
             </div>
             <ul class="menu">
                 <li><a href="#">Новая игра</a></li>
-                <li><a href="javascript:void(0)" onclick="bf.showModalOptions()">Настройки</a></li>
+                <li><a href="#">Настройки</a></li>
             </ul>
 
             <div class="clear"></div>
@@ -73,9 +73,9 @@
 
 <script type="text/javascript">
     var BF = new Battlefield({});
-    BF.setPlayerName("Александр Буйлов");
-    BF.setLevel('hard');
-    BF.run();
+    BF.setPlayerName("Александр Буйлов")
+        .setLevel('hard')
+        .run(true);
 </script>
 </body>
 </html>

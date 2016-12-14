@@ -1,7 +1,8 @@
 ;(function (global) {
     'use strict';
 
-    var __instances = {};
+    var __instances = {},
+        __brain = false;
 
     var options = {},
         _defaultPublic = {
@@ -98,7 +99,13 @@
      * Инициализирует запуск игры.
      * @returns {?null}
      */
-    Battlefield.prototype.run = function () {
+    Battlefield.prototype.run = function (brain_brain) {
+        __brain = brain_brain || false;         // компьютер vs. компьютера
+        if (__brain) {
+            h.__userName = 'Компьютер.Левый';
+            h.__brainName = 'Компьютер.Правый';
+        }
+
         try {
             var ui = new GameUI(options);
             document.querySelector(options.containerField).innerHTML = '';
@@ -159,6 +166,8 @@
             return this;
         }
         else throw new Error('Указан несуществующий уровень сложности');
+
+        return this;
     };
 
     /**
@@ -172,6 +181,7 @@
                 h.__userName = newName;
             }
         }
+        return this;
     };
 
 
@@ -350,12 +360,12 @@
         this.ui.showProgress(player);
         this.player = player;
 
-        console.log("> ["+player+"] переход хода");
-
         switch (player) {
             case (this.userKey):
-                // this.userShot();
-                this.AIShot(this.enemyKey);
+                if (__brain)
+                    this.AIShot(this.enemyKey);
+                else
+                    this.userShot();
                 break;
             case (this.enemyKey):
                 this.AIShot(this.userKey);
@@ -380,7 +390,6 @@
                     Y = event.target.parentNode.cellIndex,
                     X = event.target.parentNode.parentNode.rowIndex;
 
-                console.log("\t> ["+X+","+Y+"] выстрел игрока");
                 self.shot([X, Y], fKey);
             } catch (e) {
                 self.game(self.userKey);
@@ -400,7 +409,7 @@
 
         setTimeout(function () {
             self.shot(point, fKey);
-        }, 0);
+        }, 300);
 
 
         // private method....................
@@ -428,7 +437,7 @@
                 lsP = self.pointKill[fKey],
                 point = [];
 
-            if (lsP.length == 1) {
+            if (lsP.length == 1) {                                      // второй выстрел при добивании...
                 var X = lsP[0][0],
                     Y = lsP[0][1],
                     field = self.fields[fKey];
@@ -443,8 +452,7 @@
                             return [pX,pY];
                     }
                 }
-            } else {
-                // определяем направление...
+            } else {                                                    // третий и т.д выстрел при добивании...
                 var posHorizontal = lsP[0][0] == lsP[1][0],
                     min = options.fSize.h + options.fSize.v, max = 0;
 
@@ -455,12 +463,8 @@
                     max = max < n ? n : max;
                 }
 
-                console.log("\t\t\t> min<>max: " + min + "<>" + max);
-
                 var nP = h.rand(1, 2) % 2 ? min - 1 : max + 1;
                 point = posHorizontal ? [lsP[0][0], nP] : [nP, lsP[0][1]];
-
-                console.log("\t\t\t> Выбрана точка: ", point);
             }
 
             return point;
@@ -489,8 +493,6 @@
      * @param fKey
      */
     Battle.prototype.shot = function (point, fKey) {
-        console.log('Выстрел по полю ' + fKey, point);
-
         var self = this,
             X = point[0],
             Y = point[1];
@@ -691,7 +693,7 @@
      */
     GameUI.prototype.createFieldHTML = function (field, fKey) {
         var box = document.createElement('div'),
-            printShip = this.posLeft ? true : false,
+            printShip = this.posLeft ? true : __brain,
             dopAttr = this.posLeft ? 'lf' : 'rg';
 
         var table = createHtmlField(field, fKey, printShip),
@@ -889,6 +891,7 @@
     // *****************************************************************************************************************
     var h = {
         __userName: 'Игрок',
+        __brainName: 'Компьютер',
 
         rand: function (min, max) {
             var min = min || 0,
@@ -925,7 +928,7 @@
                 error_ui_instance: 'Я не могу взаимодействовать с интерфейсом из за неправильно переданного параметра',
                 error_game_not_found: 'Ход не известного мне игрока',
                 player_FUser: this.__userName,
-                player_FBrain: 'Компьютер'
+                player_FBrain: this.__brainName
             };
 
             return typeof mess[type] == "string" ? mess[type] : type;
