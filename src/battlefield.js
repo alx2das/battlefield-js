@@ -19,7 +19,8 @@
                 h: 'string',
                 v: 'number'
             },
-            helpPoint: true
+            helpPoint: false,
+            timeoutAI: 400
         },
         _defaultPrivate = {
             fName: ['FUser', 'FBrain'],
@@ -59,7 +60,8 @@
      *      h: 'number',                // по горизонтали - числовой
      *      v: 'string'                 // по вертикали - сивольный
      *  ],
-     *  helpPoint: true                 // вывод точек подсказок, попробуйте.
+     *  helpPoint: true,                // вывод точек подсказок, попробуйте.
+     *  timeoutAI: 400                  // время задержки между выстрелами интелекта
      * };
      * var BF = new Battlefield(conf);  // создание игрового экземпляра
      * BF.setLevel('hard');             // установка уровня сложности
@@ -97,7 +99,8 @@
 
     /**
      * Инициализирует запуск игры.
-     * @returns {?null}
+     *
+     * @param brain_brain {?boolean}    если "true" запускает игру в режиме: Компьютер vs. Компьютера
      */
     Battlefield.prototype.run = function (brain_brain) {
         __brain = brain_brain || false;         // компьютер vs. компьютера
@@ -124,8 +127,6 @@
                 });
 
             new Battle(fields, ui, options);
-
-            return null;
         } catch (e) {
             console.log(e);
         }
@@ -193,7 +194,7 @@
      * @constructor
      */
     function Field(conf) {
-        if (!conf.fName instanceof Array || conf.fName.length == 0)
+        if (!conf.fName instanceof Array || conf.fName.length === 0)
             throw new Error(h.getMessage('error_field_name'));
 
         if (typeof conf.fSize != 'object' || typeof conf.fSize.h != 'number' || typeof conf.fSize.v != 'number')
@@ -334,20 +335,51 @@
 
 
     // *****************************************************************************************************************
-    function Battle(fields, ui, options) {
+    function Battle(fields, ui) {
         if (!ui instanceof GameUI)
             throw new Error(h.getMessage('error_ui_instance'));
-
         this.ui = ui;
 
-        this.pointShot = [];
-        this.pointKill = [];
-        this.userKey = options.player.kUser;
-        this.enemyKey = options.player.kEnemy;
         this.fields = fields;
 
+        this._lsKill = [];                          // последнее попадание компьютером
+        this._lsShot = [];                          // список точек доступных для выстрела
+        this._ctnCell = [];                         // остаток кораблей у игрока
+
+        for (var play in options.player) {          // заполнение данных
+            var v = options.player[play];
+
+            this._lsKill[v] = [];
+            this._lsShot[v] = getListPoint();
+            this._ctnCell[v] = getCountCell();
+        }
+        this.userKey = options.player.kUser;        // ключ игрока
+        this.enemyKey = options.player.kEnemy;      // ключ компьютера
+
+        // первый ход
         this.player = h.rand(1, 2) % 2 ? this.userKey : this.enemyKey;
         this.game(this.player);
+
+
+        // private method....................
+        // ..................................
+
+        function getListPoint() {
+            var __fullPoint = [];
+            for (var i = 0; i < options.fSize.h; i++) {
+                for (var j = 0; j < options.fSize.v; j++)
+                    __fullPoint.push([j, i]);
+            }
+            return __fullPoint;
+        }
+
+        function getCountCell() {
+            var __countCell = 0;
+            options.fBarrier.forEach(function (ship) {
+                __countCell += ship[0] * ship[1];
+            });
+            return __countCell;
+        }
     }
 
     /**
@@ -356,16 +388,15 @@
      *
      * @param player {?string}
      */
-    Battle.prototype.game = function (player) {
-        this.ui.showProgress(player);
-        this.player = player;
+    Battle.prototype.game = function (fKey) {
+        this.ui.showProgress(fKey);                 // показываемчей ход
+        this.player = fKey;
 
-        switch (player) {
+        switch (fKey) {
             case (this.userKey):
                 if (__brain)
                     this.AIShot(this.enemyKey);
-                else
-                    this.userShot();
+                else this.userShot();
                 break;
             case (this.enemyKey):
                 this.AIShot(this.userKey);
@@ -384,7 +415,6 @@
         this.ui.clickToField(this.enemyKey, function (event) {
             if (self.player !== self.userKey)
                 return false;
-
             try {
                 var fKey = self.enemyKey,
                     Y = event.target.parentNode.cellIndex,
@@ -398,91 +428,80 @@
     };
 
     /**
-     * Искуственный интелект
+     * Искуственный интелект.
      *
      * @param fKey
      * @constructor
      */
     Battle.prototype.AIShot = function (fKey) {
+        var fSize = options.fSize,
+            tPoint = options.tPoint,
+            field = this.fields[fKey];
+
         var self = this,
             point = getPointShot();
 
         setTimeout(function () {
             self.shot(point, fKey);
-        }, 300);
+        }, options.timeoutAI);
 
 
         // private method....................
         // ..................................
 
-        // случайная точка
+        // вернет случайную точку для выстрела
         function getPointShot() {
-            createListPointShot();
-            var point;
+            var point = [];
 
-            if (self.pointKill[fKey].length > 0)
-                point = getFinishingPoint();
-            else {
-                var rInx = h.rand(0, self.pointShot[fKey].length - 1);
-
-                point = self.pointShot[fKey][rInx];
-                self.pointShot[fKey].splice(rInx, 1);
+            if (self._lsKill[fKey].length > 0) {
+                point = getPointFinishing();
+            } else {
+                var rInx = h.rand(0, self._lsShot[fKey].length - 1);
+                point = self._lsShot[fKey][rInx];
+                self._lsShot[fKey].splice(rInx, 1);
             }
-            return point;
+
+            var X = point[0], Y = point[1];
+            if (X >= 0 && X < fSize.v && Y >= 0 && Y < fSize.h) {
+                if (field[X][Y] !== tPoint.NUL || field[X][Y] !== tPoint.BAR)
+                    return point;
+            }
+
+            return getPointShot();
         }
 
-        // добивание...
-        function getFinishingPoint() {
-            var cP = [[-1,0], [0,-1], [1,0], [0,1]],
-                lsP = self.pointKill[fKey],
+        // вернет точку для добивания
+        function getPointFinishing() {
+            var cP = [[-1, 0], [0, -1], [1, 0], [0, 1]],
+                lsP = self._lsKill[fKey],
                 point = [];
 
-            if (lsP.length == 1) {                                      // второй выстрел при добивании...
-                var X = lsP[0][0],
-                    Y = lsP[0][1],
-                    field = self.fields[fKey];
+            if (lsP.length == 1) {                      // первый выстрел при добивание
+                var X = lsP[0][0], Y = lsP[0][1];
 
                 cP = h.shuffle(cP);
                 for (var i = 0; i < cP.length; i++) {
                     var pX = X + cP[i][0],
                         pY = Y + cP[i][1];
-
-                    if (pX >= 0 && pX < options.fSize.v && pY >= 0 && pY < options.fSize.h) {
-                        if (field[pX][pY] !== options.tPoint.NUL)
-                            return [pX,pY];
+                    if (pX >= 0 && pX < fSize.v && pY >= 0 && pY < fSize.h) {
+                        if (field[pX][pY] !== tPoint.NUL)
+                            return [pX, pY];
                     }
                 }
-            } else {                                                    // третий и т.д выстрел при добивании...
+            } else {                                    // второй и т.д выстрел при добивании
                 var posHorizontal = lsP[0][0] == lsP[1][0],
-                    min = options.fSize.h + options.fSize.v, max = 0;
-
+                    min = fSize.h + fSize.v, max = 0;
                 for (var i = 0; i < lsP.length; i++) {
                     var n = posHorizontal ? lsP[i][1] : lsP[i][0];
 
                     min = min > n ? n : min;
                     max = max < n ? n : max;
                 }
-
                 var nP = h.rand(1, 2) % 2 ? min - 1 : max + 1;
                 point = posHorizontal ? [lsP[0][0], nP] : [nP, lsP[0][1]];
             }
 
             return point;
-        }
-
-        // конструктор AI
-        function createListPointShot() {
-            if (typeof self.pointShot[fKey] !== "undefined")
-                return;
-
-            var points = [];
-            for (var i = 0; i < options.fSize.h; i++) {
-                for (var j = 0; j < options.fSize.v; j++)
-                    points.push([j, i]);
-            }
-
-            self.pointKill[fKey] = [];
-            self.pointShot[fKey] = points;
         }
     };
 
@@ -493,159 +512,145 @@
      * @param fKey
      */
     Battle.prototype.shot = function (point, fKey) {
+        var fSize = options.fSize,
+            tPoint = options.tPoint;
+
         var self = this,
-            X = point[0],
-            Y = point[1];
+            _fKey = fKey == this.userKey ? this.enemyKey : this.userKey,
+            X = point[0], Y = point[1];
 
-        var check = this.checkPoint(point, fKey),
-            __fKey = fKey == this.userKey ? this.enemyKey : this.userKey;
+        var check = checkPoint(point, fKey);
 
-        if (typeof check == "boolean") {
-            if (check) {
-                this.fields[fKey][X][Y] = options.tPoint.KIL;
-                this.ui.setMarker(point, options.tPoint.KIL, fKey);
+        if (typeof check == "boolean") {        // попал в игровое поле
+            if (check) {                        // ранил
+                // установка меток игрового поля
+                this._ctnCell[fKey]--;
+                this.fields[fKey][X][Y] = tPoint.KIL;
+                this.ui.setMarker(point, tPoint.KIL, fKey);
 
-                var isKill = this.isKill(point, fKey);
-                if (typeof isKill == "boolean") {
-                    this.ui.printLog(point, options.tPoint.KIL, fKey);
-
-                    if (this.pointKill[fKey] instanceof Array)
-                        this.pointKill[fKey].push(point);
-
-                    self.ui.setHelpMarker(point, fKey, function (_point, fKey) {
+                var isKill = isKillShip(point, fKey);
+                if (typeof isKill == "boolean") {       // ранил
+                    this._lsKill[fKey].push(point);
+                    this.ui.printLog(point, tPoint.KIL, fKey);
+                    this.ui.setHelpMarker(point, fKey, function (_point, fKey) {
                         var _pX = _point[0],
                             _pY = _point[1];
-
                         if (options.helpPoint) {
-                            self.ui.setMarker(_point, options.tPoint.NUL, fKey, true);
-                            self.fields[fKey][_pX][_pY] = options.tPoint.NUL;
-                        } else {
-                            if (self.pointKill[fKey] instanceof Array) {
-                                self.fields[fKey][_pX][_pY] = options.tPoint.NUL;
-                            }
+                            self.ui.setMarker(_point, tPoint.NUL, fKey, true);
                         }
+                        self.fields[fKey][_pX][_pY] = tPoint.NUL;
                     });
-                } else {
-                    this.ui.printLog(point, options.tPoint.KIL + "_death", fKey);
+                } else {                                // убил
+                    this._lsKill[fKey] = [];    // корабль уничтожен, очистка последних попаданий
 
-                    if (this.pointKill[fKey] instanceof Array)
-                        this.pointKill[fKey] = [];
-
+                    this.ui.printLog(point, tPoint.KIL + "_death", fKey);
                     isKill.forEach(function (_point) {
-                        var _pX = _point[0],
-                            _pY = _point[1];
+                        var _pX = _point[0], _pY = _point[1];
 
                         if (options.helpPoint) {
-                            self.ui.setMarker(_point, options.tPoint.NUL, fKey, true);
-                            self.fields[fKey][_pX][_pY] = options.tPoint.NUL;
-                        } else {
-                            if (self.pointKill[fKey] instanceof Array) {
-                                self.fields[fKey][_pX][_pY] = options.tPoint.NUL;
-                            }
+                            self.ui.setMarker(_point, tPoint.NUL, fKey, true);
                         }
+                        self.fields[fKey][_pX][_pY] = tPoint.NUL;
                     });
                 }
 
-                this.game(__fKey);
-            } else {
-                this.ui.printLog(point, options.tPoint.NUL, fKey);
+                if (isFinalGame(fKey)) {        // конец игры!
+                    this.ui.finalGame(_fKey, fKey);
+                }
+                else this.game(_fKey);          // повтор хода
+            } else {                            // мимо
+                // установка меток игрового поля
+                this.fields[fKey][X][Y] = tPoint.NUL;
+                this.ui.setMarker(point, tPoint.NUL, fKey);
+                this.ui.printLog(point, tPoint.NUL, fKey);
 
-                this.fields[fKey][X][Y] = options.tPoint.NUL;
-                this.ui.setMarker(point, options.tPoint.NUL, fKey);
-
-                this.game(fKey);
+                this.game(fKey);                // переход хода
             }
         }
-        else this.game(__fKey);
-    };
-
-    /**
-     * Проверяет попадание по игровому полю
-     *
-     * @param point {?array}        Точка выстрела, в формате [x, y]
-     * @param fKey {?string}        Ключ игрового поля
-     * @returns {?boolean|null}     boolean или null - если повторный выстрел в одну точку
-     */
-    Battle.prototype.checkPoint = function (point, fKey) {
-        var X = point[0],
-            Y = point[1],
-            P = this.fields[fKey][X][Y];
-
-        switch (P) {
-            case (options.tPoint.DEF):
-                return false;
-            case (options.tPoint.BAR):
-                return true;
-            default:
-                return null;
-        }
-    };
-
-    /**
-     * Проверяет уничтожен ли корабль.
-     *
-     * @param point {?array}        Точка попадания в корабль, в формате [x, y]
-     * @param fKey {?string}        Ключ игрового поля
-     * @returns {*}                 Если убит, то вернет список координатов точек во круг, иначе false
-     */
-    Battle.prototype.isKill = function (point, fKey) {
-        var cP = [[-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1]],
-            field = this.fields[fKey],
-            vKil = options.tPoint.KIL,
-            vBar = options.tPoint.BAR;
-        var sPoints = [],
-            sX = options.fSize.v,
-            sY = options.fSize.h;
-
-        return checkPointToKill(point) ? sPoints : false;
+        else this.game(_fKey);                  // уже стрелял в эту точку -> повтор хода
 
 
         // private method....................
         // ..................................
 
-        // поиск точек попадания
-        function checkPointToKill(point, noCheck) {
-            var X = point[0],
-                Y = point[1];
-            var nX = typeof noCheck == "object" ? noCheck[0] : false,
-                nY = typeof noCheck == "object" ? noCheck[1] : false;
-            var dopCheck = [];
+        // проверяет точку выстрела по полю
+        function checkPoint(point, fKey) {
+            var X = point[0], Y = point[1];
 
-            for (var i = 0; i < cP.length; i++) {
-                var pX = X + cP[i][0],
-                    pY = Y + cP[i][1];
-
-                if (pX == nX && pY == nY) {
-                    // пропуск точки проверки
-                } else {
-                    if (pX >= 0 && pX < sX && pY >= 0 && pY < sY) {
-                        var val = field[pX][pY];
-
-                        if (val == vBar)
-                            return false;
-                        else if (val == vKil)
-                            dopCheck.push([[pX, pY], [X, Y]]);
-                        else
-                            sPoints.push([pX, pY]);
-                    }
-                }
-            }
-
-            if (dopCheck.length == 0)
-                return true;
-            else {
-                var sRes = 0;
-                for (var k = 0; k < dopCheck.length; k++) {
-                    if (!checkPointToKill(dopCheck[k][0], dopCheck[k][1]))
-                        return false;
-                    else sRes++;
-                }
-
-                return sRes == dopCheck.length;
+            switch (self.fields[fKey][X][Y]) {
+                case (tPoint.DEF):
+                    return false;    // мимо
+                case (tPoint.BAR):
+                    return true;     // ранил
+                default:
+                    return null;               // что то другое
             }
         }
-    };
 
+        // проверка уничтожения корабля
+        function isKillShip(point, fKey) {
+            var cP = [[-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1]],
+                field = self.fields[fKey],
+                sPoints = [];
+
+            return _checkPointToKill(point) ? sPoints : false;
+
+
+            // private method....................
+            // ..................................
+
+            function _checkPointToKill(point, noCheck) {
+                var X = point[0], Y = point[1],     // исходная проверяемая точка
+                    nX = false, nY = false;         // не проверяемая точка при повторе
+                var dopCheck = [];                  // дополнительные точки проверки
+
+                if (typeof noCheck == "object") {
+                    nX = noCheck[0];
+                    nY = noCheck[1];
+                }
+
+                for (var i = 0; i < cP.length; i++) {
+                    var pX = X + cP[i][0],
+                        pY = Y + cP[i][1];
+
+                    if (pX == nX && pY == nY) {
+                        // точка проверенна при предыдущей итерации
+                    } else {
+                        // только если точка в рамках игрового поля
+                        if (pX >= 0 && pX < fSize.v && pY >= 0 && pY < fSize.h) {
+                            var val = field[pX][pY];
+
+                            if (val == tPoint.BAR)
+                                return false;                       // целая часть корабля -> не убит
+                            else if (val == tPoint.KIL)
+                                dopCheck.push([[pX, pY], [X, Y]]);  // доп.точка првоерки
+                            else
+                                sPoints.push([pX, pY]);             // подбитая часть корабля
+                        }
+                    }
+                }
+
+                // доп.точки проверки
+                if (dopCheck.length === 0)
+                    return true;                                    // точек более нет -> убит
+                else {
+                    var sRes = 0;
+                    for (var k = 0; k < dopCheck.length; k++) {
+                        if (!_checkPointToKill(dopCheck[k][0], dopCheck[k][1]))
+                            return false;
+                        else sRes++;
+                    }
+
+                    return sRes == dopCheck.length;                 // проверенно == доп.точек
+                }
+            }
+        }
+        
+        // проверяет окончание игры
+        function isFinalGame(fKey) {
+            return self._ctnCell[fKey] === 0;
+        }
+    };
 
     // *****************************************************************************************************************
     /**
@@ -727,8 +732,8 @@
                         var txtMM = typeof options.marker.v != 'undefined' ? (options.marker.v == 'string' ? h.getLetter(y) : (y + 1)) : (y + 1),
                             txtLL = typeof options.marker.h != 'undefined' ? (options.marker.h == 'string' ? h.getLetter(x) : (x + 1)) : (x + 1);
 
-                        mm = x == 0 ? '<div class="mm">' + txtMM + '</div>' : '';
-                        ll = y == 0 ? '<div class="ll">' + txtLL + '</div>' : '';
+                        mm = x === 0 ? '<div class="mm">' + txtMM + '</div>' : '';
+                        ll = y === 0 ? '<div class="ll">' + txtLL + '</div>' : '';
                     }
 
                     var ship = _ship ? (field[x][y] == options.tPoint.BAR ? ' let' : '') : '';
@@ -822,8 +827,7 @@
     GameUI.prototype.setHelpMarker = function (point, fKey, callback) {
         var X = point[0],
             Y = point[1],
-            sP = [[-1, -1], [1, -1], [1, 1], [-1, 1]],
-            elClass = 'auto-null';
+            sP = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
 
         for (var i = 0; i < sP.length; i++) {
             var nX = X + sP[i][0],
@@ -885,6 +889,18 @@
         li.innerHTML = html;
 
         this.containerLog.querySelector('ul').insertBefore(li, this.containerLog.querySelector('ul').firstChild);
+    };
+
+    /**
+     * Показывает сообщение об окончании игры
+     *
+     * @param winner_fKey
+     * @param loser_fKey
+     */
+    GameUI.prototype.finalGame = function (winner_fKey, loser_fKey) {
+        console.log('> GAME OVER');
+        console.log('\t> Winner:\t' + h.getMessage('player_' + winner_fKey));
+        console.log('\t> Loser:\t' + h.getMessage('player_' + loser_fKey));
     };
 
 
