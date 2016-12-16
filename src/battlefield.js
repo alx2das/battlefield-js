@@ -20,7 +20,7 @@
                 v: 'number'
             },
             helpPoint: false,
-            timeoutAI: 400
+            timeoutAI: 1
         },
         _defaultPrivate = {
             fName: ['FUser', 'FBrain'],
@@ -645,7 +645,7 @@
                 }
             }
         }
-        
+
         // проверяет окончание игры
         function isFinalGame(fKey) {
             return self._ctnCell[fKey] === 0;
@@ -898,9 +898,113 @@
      * @param loser_fKey
      */
     GameUI.prototype.finalGame = function (winner_fKey, loser_fKey) {
-        console.log('> GAME OVER');
-        console.log('\t> Winner:\t' + h.getMessage('player_' + winner_fKey));
-        console.log('\t> Loser:\t' + h.getMessage('player_' + loser_fKey));
+        var str = '';
+
+        str += '<div class="final">';
+        str += '<h3>Игра окончена</h3>';
+        str +=
+            '<table>' +
+            '   <tr class="winner">' +
+            '       <td><b>Победитель</b></td>' +
+            '       <td>' + h.getMessage('player_' + winner_fKey) + '</td>' +
+            '   </tr>' +
+            '   <tr class="loser">' +
+            '       <td><b>Проиграл</b></td>' +
+            '       <td>' + h.getMessage('player_' + loser_fKey) + '</td>' +
+            '   </tr>' +
+            '</table>';
+        str += '</div>';
+
+        this.modalWindow(str, {
+            name: 'Новая игра',
+            classElement: 'green',
+            envClick: function (modal) {
+                var BF = new Battlefield(options);
+                BF.run(false);
+
+                modal.close();
+            }
+        });
+    };
+
+    GameUI.prototype.modalWindow = function (html, footBtn) {
+        var modal = {
+            _fontID: 'modal_font',
+            _contID: 'modal_cont',
+
+            modBox: false,
+            closeBtn: false,
+            box: false,
+            foot: false,
+
+            constructModal: function (html, footBtn) {
+                this.createHTML();
+
+                this.modBox = document.querySelector('.modal-box#' + this._contID);
+                this.closeBtn = this.modBox.querySelector('.modal-close');
+                this.box = this.modBox.querySelector('.box');
+                this.foot = this.modBox.querySelector('.mod_foot');
+
+                this.box.innerHTML = html;
+
+                console.log(typeof footBtn);
+                if (typeof footBtn == "object") {
+                    var self = this,
+                        _param = typeof footBtn.classElement == "string" ? footBtn.classElement : '',
+                        fBtn = document.createElement('button');
+
+                    fBtn.setAttribute('class', 'btn ' + _param);
+                    fBtn.innerHTML = footBtn.name;
+                    fBtn.onclick = function () {
+                        footBtn.envClick(self);
+                    };
+                    this.foot.appendChild(fBtn);
+                } else if (typeof footBtn == "string") {
+                    this.foot.innerHTML = footBtn;
+                }
+                else this.foot.style.display = 'none';
+
+                this.autoPosition();
+
+                var self = this;
+                this.closeBtn.onclick = function () {
+                    self.close();
+                };
+            },
+            createHTML: function () {
+                var crFont = document.createElement('div');
+                crFont.setAttribute('class', 'modal-font');
+                crFont.setAttribute('id', this._fontID);
+
+                var crCont = document.createElement('div');
+                crCont.setAttribute('class', 'modal-box');
+                crCont.setAttribute('id', this._contID);
+                crCont.innerHTML = '<div class="modal-close">&#215;</div>' +
+                    '<div class="mod_head"><h2>Battlefield<small>2.0.0</small></h2></div>' +
+                    '<div class="box"></div>' +
+                    '<div class="mod_foot"></div>';
+
+                var body = document.querySelector('body');
+                body.appendChild(crFont);
+                body.appendChild(crCont);
+            },
+            autoPosition: function () {
+                var wid2 = this.modBox.clientWidth / 2,
+                    hei2 = this.modBox.clientHeight / 2;
+
+                this.modBox.style.marginTop = hei2 * (-1) + 'px';
+                this.modBox.style.marginLeft = wid2 * (-1) + 'px';
+            },
+            close: function () {
+                var _font = document.querySelector('.modal-font#' + this._fontID),
+                    _cont = document.querySelector('.modal-box#' + this._contID);
+
+                document.body.removeChild(_font);
+                document.body.removeChild(_cont);
+            }
+        };
+
+        modal.constructModal(html, footBtn);
     };
 
 
