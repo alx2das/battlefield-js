@@ -17,8 +17,6 @@
                 <small>2.0.0</small>
             </div>
             <ul class="menu">
-                <li><a href="#">Новая игра</a></li>
-                <li><a href="#">Настройки</a></li>
             </ul>
 
             <div class="clear"></div>
@@ -45,10 +43,15 @@
 </div>
 
 <script type="text/javascript">
-    var BF = new Battlefield({});
+    var BF = new Battlefield({
+        helpPoint: false,
+        timeoutAI: 1,
+        timeoutBrain: 3000
+    });
     BF.setPlayerName("Александр Буйлов")
-        .setLevel('easy')
-        .run(true);
+            .setLevel('hard')
+            .recursive(true)
+            .run();
 </script>
 </body>
 </html>

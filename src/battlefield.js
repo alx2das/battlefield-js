@@ -1,11 +1,14 @@
 ;(function (global) {
     'use strict';
 
-    var __instances = {},
-        __brain = false;
+    var __instances = {},               // Singlton class Battlefield
+        __brain = false,                // Режим игры "Компьютер vs. Компьютер"
+        __recursive = false,            // Режим бесконечной игры
+        __recursiveTimeout = false,     // Таймер в режиме "Компьютер vs. Компьютер"
+        __headerCreate = false;         // Генерация пунктов меню в шапке
 
     var options = {},
-        _defaultPublic = {
+        _defaultPublic = {              // Публичные опции, доступны к переопределению
             containerField: '.game-field',
             containerLog: '.game-log',
             containerStatus: '.gamer-data',
@@ -19,10 +22,11 @@
                 h: 'string',
                 v: 'number'
             },
-            helpPoint: false,
-            timeoutAI: 1
+            helpPoint: true,
+            timeoutAI: 400,
+            timeoutBrain: 5000
         },
-        _defaultPrivate = {
+        _defaultPrivate = {             // Защищенные опции
             fName: ['FUser', 'FBrain'],
             player: {
                 kUser: 'FUser',
@@ -88,6 +92,8 @@
             return __instances;
         __instances = this;
 
+        var self = this;
+
         // Merge config and full options
         if (typeof config == 'object') {
             for (var key in _defaultPublic)
@@ -95,23 +101,56 @@
             options = Object.assign(options, _defaultPrivate);
         }
         else options = Object.assign(_defaultPublic, _defaultPrivate);
+
+        // Field name
+        this.totals = [];
+        options.fName.forEach(function (item, i) {
+            if (i < 2) {
+                var k = i == 0 ? 'kUser' : 'kEnemy';
+                options.player[k] = item;
+                self.totals[item] = 0;
+            }
+        });
     }
 
     /**
-     * Инициализирует запуск игры.
+     * Запускает игру в режиме: Компьютер vs. Компьютера
      *
-     * @param brain_brain {?boolean}    если "true" запускает игру в режиме: Компьютер vs. Компьютера
+     * @param active
+     * @returns {Battlefield}
      */
-    Battlefield.prototype.run = function (brain_brain) {
-        __brain = brain_brain || false;         // компьютер vs. компьютера
+    Battlefield.prototype.brainBrain = function (active) {
+        __brain = active || false;         // компьютер vs. компьютера
         if (__brain) {
             h.__userName = 'Компьютер.Левый';
             h.__brainName = 'Компьютер.Правый';
+        } else {
+            h.__userName = h.__userNameDef;
+            h.__brainName = h.__brainNameDef;
         }
 
+        return this;
+    };
+
+    Battlefield.prototype.recursive = function (active) {
+        __recursive = active || false;
+        this.brainBrain(true);
+
+        return this
+    };
+
+    /**
+     * Инициализирует запуск игры.
+     */
+    Battlefield.prototype.run = function () {
+        var self = this,
+            ui = new GameUI(this);
+
         try {
-            var ui = new GameUI(options);
             document.querySelector(options.containerField).innerHTML = '';
+
+            if (!__headerCreate)
+                createHeaderMenu();
 
             var F = new Field({
                 fName: options.fName,
@@ -128,7 +167,35 @@
 
             new Battle(fields, ui, options);
         } catch (e) {
-            console.log(e);
+            ui.exceptionInfo(e);
+        }
+
+        function createHeaderMenu() {
+            __headerCreate = true;
+
+            var headMenu = document.querySelector('ul.menu'),
+                listMenu = [],
+                arItemMenu = [{
+                    name: 'Настройки',
+                    onClick: function (ui) {
+                        console.log('Настройки');
+                    }
+                }];
+            arItemMenu.forEach(function (item, i) {
+                listMenu[i] = document.createElement('a');
+                listMenu[i].innerHTML = item.name;
+                listMenu[i].setAttribute('href', 'javascript:void(0);');
+
+                if (typeof item.onClick == "function") {
+                    listMenu[i].onclick = function (event) {
+                        item.onClick();
+                    };
+                }
+
+                var li = document.createElement('li');
+                li.appendChild(listMenu[i]);
+                headMenu.appendChild(li);
+            });
         }
     };
 
@@ -180,6 +247,7 @@
         if (typeof newName == "string") {
             if (newName.length >= 3) {
                 h.__userName = newName;
+                h.__userNameDef = newName;
             }
         }
         return this;
@@ -389,20 +457,24 @@
      * @param player {?string}
      */
     Battle.prototype.game = function (fKey) {
-        this.ui.showProgress(fKey);                 // показываемчей ход
-        this.player = fKey;
+        try {
+            this.ui.showProgress(fKey);                 // показываемчей ход
+            this.player = fKey;
 
-        switch (fKey) {
-            case (this.userKey):
-                if (__brain)
-                    this.AIShot(this.enemyKey);
-                else this.userShot();
-                break;
-            case (this.enemyKey):
-                this.AIShot(this.userKey);
-                break;
-            default:
-                throw new Error(h.getMessage('error_game_not_found'));
+            switch (fKey) {
+                case (this.userKey):
+                    if (__brain)
+                        this.AIShot(this.enemyKey);
+                    else this.userShot();
+                    break;
+                case (this.enemyKey):
+                    this.AIShot(this.userKey);
+                    break;
+                default:
+                    throw new Error(h.getMessage('error_game_not_found'));
+            }
+        } catch (e) {
+            this.ui.exceptionInfo(e);
         }
     };
 
@@ -461,10 +533,12 @@
                 self._lsShot[fKey].splice(rInx, 1);
             }
 
-            var X = point[0], Y = point[1];
-            if (X >= 0 && X < fSize.v && Y >= 0 && Y < fSize.h) {
-                if (field[X][Y] !== tPoint.NUL || field[X][Y] !== tPoint.BAR)
-                    return point;
+            if (point instanceof Array && point[0] !== "undefined" && point[1] !== "undefined") {
+                var X = point[0], Y = point[1];
+                if (X >= 0 && X < fSize.v && Y >= 0 && Y < fSize.h) {
+                    if (field[X][Y] !== tPoint.NUL || field[X][Y] !== tPoint.BAR)
+                        return point;
+                }
             }
 
             return getPointShot();
@@ -659,14 +733,19 @@
      *
      * @constructor
      */
-    function GameUI() {
-        this.containerField = document.querySelector(options.containerField);
-        this.containerLog = document.querySelector(options.containerLog);
-        this.containerStatus = document.querySelector(options.containerStatus);
+    function GameUI(bf) {
+        try {
+            this.containerField = document.querySelector(options.containerField);
+            this.containerLog = document.querySelector(options.containerLog);
+            this.containerStatus = document.querySelector(options.containerStatus);
 
-        this.posLeft = true;
+            this.posLeft = true;
+            this.battlefild = bf;
 
-        this.defaultHTML();
+            this.defaultHTML();
+        } catch (e) {
+            this.exceptionInfo(e);
+        }
     }
 
     /**
@@ -678,7 +757,9 @@
                 kEnemy = options.player.kEnemy;
             var html =
                 '<span class="name ' + kUser + '">' + h.getMessage('player_' + kUser) + '</span>' +
+                '<span class="total ' + kUser + '">' + parseInt(this.battlefild.totals[kUser]) + '</span>' +
                 '<span>&amp;</span>' +
+                '<span class="total ' + kEnemy + '">' + this.battlefild.totals[kEnemy] + '</span>' +
                 '<span class="name ' + kEnemy + '">' + h.getMessage('player_' + kEnemy) + '</span>';
 
             this.containerStatus.innerHTML = html;
@@ -898,10 +979,52 @@
      * @param loser_fKey
      */
     GameUI.prototype.finalGame = function (winner_fKey, loser_fKey) {
-        var str = '';
+        var self = this,
+            str = '';
+
+        ++this.battlefild.totals[winner_fKey];
+
+        if (__recursive) {
+            str = 'Новый раунд начнется через <b>'+(options.timeoutBrain/1000)+'</b> сек.';
+
+            var _modal = this.modalWindow('Конец раунда', str, [{
+                value: 'Играть самому',
+                className: 'green',
+                onClick: function (env, modal) {
+                    clearTimeout(timerId);
+
+                    for (var k in self.battlefild.totals) {
+                        self.battlefild.totals[k] = 0;
+                    }
+
+                    options = _defaultPublic;
+                    options = Object.assign(options, _defaultPrivate);
+
+                    self.battlefild
+                        .recursive(false)
+                        .brainBrain(false)
+                        .run();
+
+                    modal.close();
+                }
+            }, {
+                value: 'Остановить',
+                className: 'red',
+                onClick: function (env, modal) {
+                    clearTimeout(__recursiveTimeout);
+                    modal.close();
+                }
+            }]);
+
+            __recursiveTimeout = setTimeout(function () {
+                self.battlefild.run();
+                _modal.close();
+            }, options.timeoutBrain);
+
+            return;
+        }
 
         str += '<div class="final">';
-        str += '<h3>Игра окончена</h3>';
         str +=
             '<table>' +
             '   <tr class="winner">' +
@@ -915,19 +1038,30 @@
             '</table>';
         str += '</div>';
 
-        this.modalWindow(str, {
-            name: 'Новая игра',
-            classElement: 'green',
-            envClick: function (modal) {
-                var BF = new Battlefield(options);
-                BF.run(false);
-
+        this.modalWindow('Конец игры', str, [{
+            value: 'Новая игра',
+            className: 'green',
+            onClick: function (env, modal) {
+                self.battlefild.run();
                 modal.close();
             }
-        });
+        }, {
+            value: 'Закрыть',
+            className: 'red',
+            onClick: function (env, modal) {
+                modal.close();
+            }
+        }]);
     };
 
-    GameUI.prototype.modalWindow = function (html, footBtn) {
+    /**
+     * Отображает модальное окно на странице.
+     *
+     * @param titleStr {?string}    Заголовок модального окна
+     * @param contentHtml {?html}   Содержимое окна
+     * @param footerBtn {?array}    Параметры кнопок в подвале
+     */
+    GameUI.prototype.modalWindow = function (titleStr, contentHtml, footerBtn) {
         var modal = {
             _fontID: 'modal_font',
             _contID: 'modal_cont',
@@ -937,7 +1071,7 @@
             box: false,
             foot: false,
 
-            constructModal: function (html, footBtn) {
+            constructModal: function () {
                 this.createHTML();
 
                 this.modBox = document.querySelector('.modal-box#' + this._contID);
@@ -945,22 +1079,26 @@
                 this.box = this.modBox.querySelector('.box');
                 this.foot = this.modBox.querySelector('.mod_foot');
 
-                this.box.innerHTML = html;
+                this.box.innerHTML = contentHtml;
 
-                console.log(typeof footBtn);
-                if (typeof footBtn == "object") {
+                if (footerBtn instanceof Array && footerBtn.length > 0) {
                     var self = this,
-                        _param = typeof footBtn.classElement == "string" ? footBtn.classElement : '',
-                        fBtn = document.createElement('button');
+                        modBtn = [];
+                    footerBtn.forEach(function (item, i) {
+                        var _param = typeof item.className == "string" ? item.className : '';
 
-                    fBtn.setAttribute('class', 'btn ' + _param);
-                    fBtn.innerHTML = footBtn.name;
-                    fBtn.onclick = function () {
-                        footBtn.envClick(self);
-                    };
-                    this.foot.appendChild(fBtn);
-                } else if (typeof footBtn == "string") {
-                    this.foot.innerHTML = footBtn;
+                        modBtn[i] = document.createElement('button');
+                        modBtn[i].setAttribute('class', 'btn ' + _param);
+                        modBtn[i].innerHTML = item.value;
+
+                        if (typeof item.onClick == "function") {
+                            modBtn[i].onclick = function (event) {
+                                item.onClick(event, self);
+                            };
+                        }
+
+                        self.foot.appendChild(modBtn[i]);
+                    });
                 }
                 else this.foot.style.display = 'none';
 
@@ -980,7 +1118,7 @@
                 crCont.setAttribute('class', 'modal-box');
                 crCont.setAttribute('id', this._contID);
                 crCont.innerHTML = '<div class="modal-close">&#215;</div>' +
-                    '<div class="mod_head"><h2>Battlefield<small>2.0.0</small></h2></div>' +
+                    '<div class="mod_head">' + titleStr + '</div>' +
                     '<div class="box"></div>' +
                     '<div class="mod_foot"></div>';
 
@@ -999,19 +1137,62 @@
                 var _font = document.querySelector('.modal-font#' + this._fontID),
                     _cont = document.querySelector('.modal-box#' + this._contID);
 
-                document.body.removeChild(_font);
-                document.body.removeChild(_cont);
+                if (_font !== null)
+                    document.body.removeChild(_font);
+                if (_cont !== null)
+                    document.body.removeChild(_cont);
             }
         };
+        modal.constructModal();
 
-        modal.constructModal(html, footBtn);
+        return modal;
     };
 
+    /**
+     * Выводит информацию об ошибке в пользовательский интерфейс
+     *
+     * @param error {exceprion}
+     */
+    GameUI.prototype.exceptionInfo = function (error) {
+        console.log(error)
+        var self = this,
+            title = '',
+            content = '',
+            btn = [];
+
+        switch (error.name) {
+            case ('Error'):
+                title = 'Критическая ошибка';
+                content = '<b>' + error.message + '</b><span class="info">Невозможнно продолжить игру</span>';
+                btn = [{
+                    value: 'Параметры по умолчанию',
+                    className: 'green',
+                    onClick: function (env, modal) {
+                        options = _defaultPublic;
+                        options = Object.assign(options, _defaultPrivate);
+                        self.battlefild.run();
+                        modal.close();
+                    }
+                }];
+                break;
+            case ('TypeError'):
+                title = 'Не верно указаны параметры';
+                content = '<b>' + error.message + '</b><span class="info">Измените настройки игры</span>';
+                break;
+            default:
+                title = 'Ошибка типа: ' + error.name;
+                content = '<b>' + error.message + '</b>';
+        }
+
+        this.modalWindow(title, content, btn);
+    };
 
     // *****************************************************************************************************************
     var h = {
         __userName: 'Игрок',
         __brainName: 'Компьютер',
+        __userNameDef: 'Игрок',
+        __brainNameDef: 'Компьютер',
 
         rand: function (min, max) {
             var min = min || 0,
@@ -1031,7 +1212,7 @@
         },
         getLetter: function (key, operand) {
             var operand = operand || '',
-                alphabet = "ABCDIFGHIJKLMNOPQRSTUVWXYZ";
+                alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             if (key > alphabet.length)
                 return h.getLetter(key - alphabet.length, (operand == '' ? 1 : operand + 1));
 
