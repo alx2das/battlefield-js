@@ -4,8 +4,8 @@
     <title>Battlefield</title>
 
     <meta charset="UTF-8"/>
-    <link rel="stylesheet" href="src/battlefield.css"/>
-    <script src="src/battlefield.js"></script>
+    <link rel="stylesheet" href="../dist/battlefield.min.css"/>
+    <script src="../dist/battlefield.min.js"></script>
 </head>
 <body>
 
@@ -14,20 +14,16 @@
         <div class="header">
             <div class="logotype">
                 <a href="/">Battlefield</a>
-                <small>2.0.0</small>
+                <small>1.0.0</small>
             </div>
-            <ul class="menu">
-            </ul>
-
+            <ul class="menu"></ul>
             <div class="clear"></div>
         </div>
     </div>
-
     <div class="content">
         <div class="gamer-data"></div>
         <div class="game-field"></div>
     </div>
-
     <div class="wrap">
         <div class="game-log"></div>
     </div>
@@ -36,22 +32,15 @@
 <div class="footer">
     <div class="wrap">
         Created by <a href="#">Alexandr Builov</a>
-        <span style="float: right">
-            исходный код на <a href="https://github.com/alx2das/battlefield-js">GitHub</a>
-        </span>
+        <a href="https://github.com/alx2das/battlefield-js" class="pull-right">GitHub</a>
     </div>
 </div>
 
 <script type="text/javascript">
-    var BF = new Battlefield({
-        helpPoint: false,
-        timeoutAI: 1,
-        timeoutBrain: 3000
-    });
-    BF.setPlayerName("Александр Буйлов")
-            .setLevel('hard')
-            .recursive(true)
-            .run();
+    var BF = new Battlefield();     // Параметры по умолчанию
+    BF.setLevel('middle')           // Уровень сложности "средний"
+            .brainBrain(true)       // Режиме "Компьютер vs. Компьютер"
+            .run();                 // инициализирует запуск игры
 </script>
 </body>
 </html>

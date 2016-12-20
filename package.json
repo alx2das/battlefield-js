@@ -1,0 +1,36 @@
+{
+  "name": "battlefield-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "examples/default_options.html",
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "dependencies": {
+
+  },
+  "devDependencies": {
+    "del": "^2.2.2",
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-if": "^2.0.2",
+    "gulp-minify-css": "^1.2.4",
+    "gulp-uglify": "^2.0.0",
+    "run-sequence": "^1.2.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "gulp": "./node_modules/.bin/gulp"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alx2das/battlefield-js.git"
+  },
+  "author": "Alexandr Builov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alx2das/battlefield-js/issues"
+  },
+  "homepage": "https://github.com/alx2das/battlefield-js#readme"
+}

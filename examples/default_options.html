@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Battlefield</title>
+
+    <meta charset="UTF-8"/>
+    <link rel="stylesheet" href="../dist/battlefield.min.css"/>
+    <script src="../dist/battlefield.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <div class="wrap">
+        <div class="header">
+            <div class="logotype">
+                <a href="/">Battlefield</a>
+                <small>1.0.0</small>
+            </div>
+            <ul class="menu">
+            </ul>
+
+            <div class="clear"></div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="gamer-data"></div>
+        <div class="game-field"></div>
+    </div>
+
+    <div class="wrap">
+        <div class="game-log"></div>
+    </div>
+    <div class="clearFooter"></div>
+</div>
+<div class="footer">
+    <div class="wrap">
+        Created by <a href="#">Alexandr Builov</a>
+        <a href="https://github.com/alx2das/battlefield-js" class="pull-right">GitHub</a>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var BF = new Battlefield();     // Параметры по умолчанию
+    BF.run();                       // инициализирует запуск игры
+</script>
+</body>
+</html>
