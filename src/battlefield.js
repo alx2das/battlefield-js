@@ -1,209 +1,74 @@
-;(function (global) {
+(function (window) {
     'use strict';
 
-    var __instances = {},               // Singlton class Battlefield
-        __brain = false,                // Режим игры "Компьютер vs. Компьютер"
-        __recursive = false,            // Режим бесконечной игры
-        __recursiveTimeout = false,     // Таймер в режиме "Компьютер vs. Компьютер"
-        __headerCreate = false;         // Генерация пунктов меню в шапке
-
-    var options = {},
-        _defaultPublic = {              // Публичные опции, доступны к переопределению
-            containerField: '.game-field',
-            containerLog: '.game-log',
-            containerStatus: '.gamer-data',
-            fSize: {
-                h: 15, v: 15
-            },
-            fBarrier: [
-                [5, 1], [4, 2], [3, 3], [2, 4], [1, 5]
-            ],
-            marker: {
-                h: 'string',
-                v: 'number'
-            },
-            helpPoint: true,
-            timeoutAI: 400,
-            timeoutBrain: 5000
+    var _instances = false,                                         // одиночка
+        playerWinner = {
+            kUser: 0,
+            kBrain: 0
         },
-        _defaultPrivate = {             // Защищенные опции
-            fName: ['FUser', 'FBrain'],
-            player: {
-                kUser: '', kEnemy: ''
+        globalLevel = 'middle';
+
+    // *****************************************************************************************************************
+
+    var options = {},                                               // опции игры
+        // публичные свойства, могут быть изменены через config
+        _optionsPublic = {
+            printName: true,                                        // печатать имена игроков
+            printLog: true,                                         // ведения журнала боя
+            printHelp: true,                                        // использовать подсказки
+
+            fSize: {                                                // размерность игрового поля
+                h: 15, v: 15                                        // h - горизонтально, v - вертикально
             },
-            tPoint: {
-                DEF: 0,
-                BAR: 1,
-                KIL: 2,
-                NUL: 3
+            fBarrier: [                                             // список кораблей на игровом поле
+                [5, 2], [4, 3], [3, 4], [2, 5]                      // по принципу: ["кол-во палуб", "кол-во штук"]
+            ],
+            fMarker: {                                              // обозначение ячеек
+                h: 'number', v: 'char'                              // могут быть: char или number
+            }
+        },
+        // приватные, не доступны для изменения
+        _optionsPrivate = {
+            player: {                                               // коды играков, должны начинаться с буквы
+                kUser: 'FUser', kBrain: 'FBrain'
+            },
+            tPoint: {                                               // типы точек игрового поля
+                DEF: 0, BAR: 1, KIL: 2, NUL: 3                      // пусто, корабль, ранил, мимо
             }
         };
 
-    /**
-     * Это конструктор игры Battlefiel. Представлен в единственном экземпляре.
-     * Доступно ограниченнное количество методов.
-     *
-     * @param {?object} config          Конфигурация экземпляра, могут быть заданы необходимые
-     *                                  настройки для приятной игры. Если оставить пустым настройки
-     *                                  будут установленны по умолчанию, ировень сложности можно
-     *                                  изменять при помощи специально метода.
-     * @returns {Battlefield}           Единственный экземпляр игры.
-     *
-     * Параметры запуска:
-     * ******************
-     * var conf = {
-     *  containerField: '.game-field',  // контейнер карты игровых полей
-     *  containerLog: '.game-log',      // контейнер логирования хода игры
-     *  containerStatus: '.gamer-data', // контейнер отображения имени и счета игроков
-     *  fSize: {h: 15, v: 15},          // размерность игрового поля {по горизонтали, по вертикали}
-     *  fBarrier: [                     // массив кораблей на игровом поле, расстановка случайным образом
-     *      [4, 1], [3, 2], [2, 3]      // > установка по принцыпу [кол.клеток, кол.штук]
-     *  ],
-     *  marker: [                       // маркировки клеток, может принимать значение: [string|number|false]
-     *      h: 'number',                // по горизонтали - числовой
-     *      v: 'string'                 // по вертикали - сивольный
-     *  ],
-     *  helpPoint: true,                // вывод точек подсказок, попробуйте.
-     *  timeoutAI: 400                  // время задержки между выстрелами интелекта
-     * };
-     * var BF = new Battlefield(conf);  // создание игрового экземпляра
-     * BF.setLevel('hard');             // установка уровня сложности
-     * BF.run();                        // запуск игры
-     *
-     * Рекомендуемые параметры:
-     * ************************
-     * Рекомендуется оставлять параметры по умолчанию. Редактировать уровень сложности при
-     * помощи соответствующего метода или же при помощи игрового интерфейса.
-     *
-     *  {?array}    fBarrier            Необходимо устанавливать корабли по количеству занимаемых
-     *                                  клеток от большего к меньшему. Общее количество клеток не
-     *                                  должно привышать 50% размера игрового поля.
-     *  {?boolean}  helpPoint           Можно как включать так и отключать для отображения подсказок
-     *                                  в какие клетки стрелять нет смысла. Чаще всего это угловы
-     *                                  клетки от попадания по кораблю. При выключнном параметре,
-     *                                  ход по предполагаемому месту размещения подсказки будет защитан.
-     *
-     * @constructor
-     */
-    function Battlefield(config) {
+    // *****************************************************************************************************************
+
+    function Battlefield(htmlSelector, config) {
         // Singleton
-        if (__instances instanceof Battlefield)
-            return __instances;
-        __instances = this;
+        if (_instances instanceof Battlefield)
+            return _instances;
+        _instances = this;
 
-        var self = this;
-
-        // Merge config and full options
+        // объединяем установленные опции игры с доступными
         if (typeof config == 'object') {
-            for (var key in _defaultPublic)
-                options[key] = config.hasOwnProperty(key) ? config[key] : _defaultPublic[key];
-            options = Object.assign(options, _defaultPrivate);
+            for (var key in _optionsPublic)
+                options[key] = config.hasOwnProperty(key) ? config[key] : _optionsPublic[key];
+            options = Object.assign(options, _optionsPrivate);
         }
-        else options = Object.assign(_defaultPublic, _defaultPrivate);
+        else options = Object.assign(_optionsPublic, _optionsPrivate);
 
-        // Field name
-        this.totals = [];
-        options.fName.forEach(function (item, i) {
-            if (i < 2) {
-                var k = i == 0 ? 'kUser' : 'kEnemy';
-                options.player[k] = item;
-                self.totals[item] = 0;
-            }
-        });
+        options.htmlSelector = document.querySelector(htmlSelector);
+
+        this.setLevel(globalLevel);
     }
 
-    /**
-     * Запускает игру в режиме: Компьютер vs. Компьютера
-     *
-     * @param active
-     * @returns {Battlefield}
-     */
-    Battlefield.prototype.brainBrain = function (active) {
-        __brain = active || false;         // компьютер vs. компьютера
-        if (__brain) {
-            h.__userName = 'Компьютер.Левый';
-            h.__brainName = 'Компьютер.Правый';
-        } else {
-            h.__userName = h.__userNameDef;
-            h.__brainName = h.__brainNameDef;
-        }
-
-        return this;
-    };
-
-    Battlefield.prototype.recursive = function (active) {
-        __recursive = active || false;
-        this.brainBrain(true);
-
-        return this
-    };
-
-    /**
-     * Инициализирует запуск игры.
-     */
     Battlefield.prototype.run = function () {
-        var self = this,
-            ui = new GameUI(this);
-
         try {
-            document.querySelector(options.containerField).innerHTML = '';
+            var F = new Field();
+            var fields = F.setBarrier();
 
-            if (!__headerCreate)
-                createHeaderMenu();
-
-            var F = new Field({
-                fName: options.fName,
-                fSize: options.fSize,
-                fBarrier: options.fBarrier,
-                tPoint: options.tPoint
-            });
-
-            var fields = F
-                .createField()
-                .setBarrier(function (field, fKey) {
-                    ui.createFieldHTML(field, fKey);
-                });
-
-            new Battle(fields, ui, options);
-        } catch (e) {
-            ui.exceptionInfo(e);
-        }
-
-        function createHeaderMenu() {
-            __headerCreate = true;
-
-            var headMenu = document.querySelector('ul.menu'),
-                listMenu = [],
-                arItemMenu = [{
-                    name: 'Настройки',
-                    onClick: function (ui) {
-                        console.log('Настройки');
-                    }
-                }];
-            arItemMenu.forEach(function (item, i) {
-                listMenu[i] = document.createElement('a');
-                listMenu[i].innerHTML = item.name;
-                listMenu[i].setAttribute('href', 'javascript:void(0);');
-
-                if (typeof item.onClick == "function") {
-                    listMenu[i].onclick = function (event) {
-                        item.onClick();
-                    };
-                }
-
-                var li = document.createElement('li');
-                li.appendChild(listMenu[i]);
-                headMenu.appendChild(li);
-            });
+            new Battle(fields, this);
+        } catch (err) {
+            h.showExceptions(err);
         }
     };
 
-    /**
-     * Устанавливает уровень сложности
-     *
-     * @param type                  Доступны типы: [easy|middle|hard]
-     * @returns {Battlefield}
-     */
     Battlefield.prototype.setLevel = function (type) {
         var level = {
             easy: {
@@ -212,15 +77,11 @@
             },
             middle: {
                 fSize: {h: 15, v: 15},
-                fBarrier: [[5, 1], [4, 2], [3, 3], [2, 4], [1, 5]]
+                fBarrier: [[5, 2], [4, 3], [3, 4], [2, 5]]
             },
             hard: {
                 fSize: {h: 15, v: 20},
                 fBarrier: [[6, 1], [5, 2], [4, 3], [3, 4], [2, 5], [1, 6]]
-            },
-            dev: {
-                fSize: {h: 20, v: 20},
-                fBarrier: [[1, 6]]
             }
         };
 
@@ -230,112 +91,61 @@
             options.fSize = nLevel.fSize;
             options.fBarrier = nLevel.fBarrier;
 
+            globalLevel = type;
+
             return this;
         }
-        else throw new Error('Указан несуществующий уровень сложности');
+        else throw new Error(h.getMessage('err_invalid_level'));
 
         return this;
     };
-
-    /**
-     * Устанавливает имя пользователя
-     *
-     * @param newName {?string}
-     */
-    Battlefield.prototype.setPlayerName = function (newName) {
-        if (typeof newName == "string") {
-            if (newName.length >= 3) {
-                h.__userName = newName;
-                h.__userNameDef = newName;
-            }
-        }
-        return this;
-    };
-
 
     // *****************************************************************************************************************
-    /**
-     * Отвечает за работу с игровыми полями
-     *
-     * @param conf
-     * @constructor
-     */
-    function Field(conf) {
-        if (!conf.fName instanceof Array || conf.fName.length === 0)
-            throw new Error(h.getMessage('error_field_name'));
 
-        if (typeof conf.fSize != 'object' || typeof conf.fSize.h != 'number' || typeof conf.fSize.v != 'number')
-            throw new TypeError(h.getMessage('error_field_size'));
+    function Field() {
+        if (options.fSize.h < 10 || options.fSize.h > 25 || options.fSize.v < 10 || options.fSize.v > 25)
+            throw new RangeError(h.getMessage('err_size_field'));
 
-        if (!conf.fBarrier instanceof Array)
-            throw new TypeError(h.getMessage('error_barrier_type'));
+        if (!(options.fBarrier instanceof Array) || options.fBarrier.length < 1)
+            throw new RangeError(h.getMessage('err_barrier'));
 
-        if (typeof conf.tPoint != 'object')
-            throw new Error(h.getMessage('error_point_type'));
+        this.fields = [];
+        this.fName = [options.player.kUser, options.player.kBrain];
 
-        this.fName = conf.fName;
-        this.fSize = conf.fSize;
-        this.fBarrier = conf.fBarrier;
-        this.tPoint = conf.tPoint;
+        for (var player in options.player) {                        // создание игровых полей
+            var fKey = options.player[player];
 
-        this.fList = {};
-    }
+            var field = new Array(options.fSize.v);
+            for (var i = 0; i < options.fSize.v; i++) {
+                field[i] = new Array(options.fSize.h);
 
-    /**
-     * Создает игровое согласно установленным параметрам
-     * установленным в конструкторе класса
-     *
-     * @returns {Field}             Вернет обьект класса
-     */
-    Field.prototype.createField = function () {
-        var self = this;
-
-        self.fName.forEach(function (fKey) {
-            var field = new Array(self.fSize.v);
-
-            for (var v = 0; v < self.fSize.v; v++) {
-                field[v] = new Array(self.fSize.h);
-
-                for (var h = 0; h < self.fSize.h; h++)
-                    field[v][h] = self.tPoint.DEF;
+                for (var j = 0; j < options.fSize.h; j++)
+                    field[i][j] = options.tPoint.DEF;
             }
 
-            self.fList[fKey] = field;
-        });
+            this.fields[fKey] = field;
+        }
+    }
 
-        return this;
-    };
-
-    /**
-     * Устанавливает все корабли на игровые поля.
-     * После того как корабли будут установленны будет вызван callback с параметрами:
-     *  > @param {?array}   field   массив игрового поля кораблями
-     *  > @param {?string}  fKey    ключ игрового поля из options.fName
-     *
-     * @param callback(field, fKey)
-     * @returns {{?array}|*}        Вернет список игровых полей с установленными кораблями
-     */
-    Field.prototype.setBarrier = function (callback) {
+    Field.prototype.setBarrier = function () {
         var self = this,
-            maxIterations = self.fName.length * 100;
+            maxIteration = this.fName.length * 100;
 
-        self.fName.forEach(function (fKey) {
-            var field = self.fList[fKey];
+        this.fName.forEach(function (fKey) {                        // на каждое игровое поле ставим по отдельности
+            var field = self.fields[fKey];
 
-            self.fBarrier.forEach(function (ship) {
-                var cell = ship[0],
-                    ctn = ship[1];
+            options.fBarrier.forEach(function (ship) {              // перебираем типы кораблей
+                var cell = ship[0],                                 // кол-во палуб
+                    ctn = ship[1];                                  // кол-во штук
 
-                for (var c = 0; c < ctn; c++)
+                for (var c = 0; c < ctn; c++)                       // устанавливаем по одному
                     field = shipInField(cell, field);
             });
 
-            self.fList[fKey] = field;
-            if (typeof callback == 'function')
-                callback(field, fKey);
+            self.fields[fKey] = field;
         });
 
-        return self.fList;
+        return this.fields;                                         // игровые поля с кораблями
 
 
         // private method....................
@@ -343,85 +153,88 @@
 
         // установит корабль на игровое поле
         function shipInField(cell, field) {
-            if (maxIterations > 0) maxIterations--;
-            else throw new Error(h.getMessage('error_max_iterations'));
+            if (maxIteration > 0) maxIteration--;                   // от зацикливания рекурсии
+            else throw new RangeError(h.getMessage('err_max_iteration'));
 
-            var sPoints = [],
-                x = h.rand(0, self.fSize.v - 1),
-                y = h.rand(0, self.fSize.h - 1);
+            var sPoint = [],                                        // массив точек для размещения корабля
+                x = h.rand(0, options.fSize.v - 1),                 // случайная координата начала установки
+                y = h.rand(0, options.fSize.h - 1);
 
-            var posHorizontal = h.rand(1, 2) % 2 ? true : false;
+            var posHorizontal = h.rand(1, 2) % 2;                   // случайное направление, горизонтально/вертикально
 
-            for (var i = 0; i < cell; i++) {
+            for (var i = 0; i < cell; i++) {                        // перебор палуб
                 var pX = x, pY = y;
 
                 if (posHorizontal) pX = x + i;
                 else pY = y + i;
 
-                if (checkPoint(pX, pY, field))
-                    sPoints.push([pX, pY]);
-                else return shipInField(cell, field);
+                if (checkPoint(pX, pY, field))                      // если точка свободна, сохраняем ее
+                    sPoint.push([pX, pY]);
+                else return shipInField(cell, field);               // перезапуск
             }
 
-            sPoints.forEach(function (point) {
+            // сюда дайдет если только все точки доступны для размещения
+            sPoint.forEach(function (point) {                       // точки которые можно нанести на карту
                 var x = point[0],
                     y = point[1];
 
-                field[x][y] = self.tPoint.BAR;
+                field[x][y] = options.tPoint.BAR;
             });
 
-            return field;
+            return field;                                           // вернем карту с размещенным кораблем
         }
 
         // проверяет выбранную точку + ее окружение
         function checkPoint(x, y, field) {
             var cP = [[-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1]],
                 pX = 0, pY = 0;
-            var sX = self.fSize.v - 1,
-                sY = self.fSize.h - 1;
+            var sX = options.fSize.v - 1,
+                sY = options.fSize.h - 1;
 
-            if (x < 0 || x > sX || y < 0 || y > sY)
+            if (x < 0 || x > sX || y < 0 || y > sY)                 // исходная точка в рамках игрового поля
                 return false;
 
-            if (field[x][y] !== self.tPoint.DEF)
+            if (field[x][y] !== options.tPoint.DEF)                 // точка свободна
                 return false;
 
-            for (var i = 0; i < cP.length; i++) {
+            for (var i = 0; i < cP.length; i++) {                   // перебор соседних точек
                 pX = x + cP[i][0];
                 pY = y + cP[i][1];
 
-                if (pX >= 0 && pX <= sX && pY >= 0 && pY <= sY) {
-                    if (field[pX][pY] != self.tPoint.DEF)
+                if (pX >= 0 && pX <= sX && pY >= 0 && pY <= sY) {   // сеседние точки могут быть за гранью поля
+                    if (field[pX][pY] != options.tPoint.DEF)        // но не могут быть заняты другим кораблем
                         return false;
                 }
             }
 
-            return true;
+            return true;                                            // если все условия проверки пройдены, можно ставить
         }
     };
 
-
     // *****************************************************************************************************************
-    function Battle(fields, ui) {
-        if (!ui instanceof GameUI)
-            throw new Error(h.getMessage('error_ui_instance'));
-        this.ui = ui;
+
+    function Battle(fields, battlefield, htmlSelector) {
+        if (!(battlefield instanceof Battlefield))
+            throw new Error('Invalid Battlefield object in the construct Battle');
+
+        GameUI.apply(this, arguments);
 
         this.fields = fields;
+        this.battlefield = battlefield;
 
         this._lsKill = [];                          // последнее попадание компьютером
         this._lsShot = [];                          // список точек доступных для выстрела
         this._ctnCell = [];                         // остаток кораблей у игрока
 
-        for (var play in options.player) {          // заполнение данных
-            var v = options.player[play];
+        for (var p in options.player) {             // заполнение данных
+            var v = options.player[p];
 
             this._lsKill[v] = [];
             this._lsShot[v] = getListPoint();
             this._ctnCell[v] = getCountCell();
         }
         this.userKey = options.player.kUser;        // ключ игрока
-        this.enemyKey = options.player.kEnemy;      // ключ компьютера
+        this.enemyKey = options.player.kBrain;      // ключ компьютера
 
         // первый ход
         this.player = h.rand(1, 2) % 2 ? this.userKey : this.enemyKey;
@@ -449,72 +262,56 @@
         }
     }
 
-    /**
-     * Осуществляет переход хода.
-     * Получает ключ игрока который должен произвести свой ход.
-     *
-     * @param player {?string}
-     */
+    Battle.prototype = Object.create(GameUI.prototype);
+
     Battle.prototype.game = function (fKey) {
         try {
-            this.ui.showProgress(fKey);                 // показываемчей ход
+            this.showProgress(fKey);
             this.player = fKey;
 
             switch (fKey) {
                 case (this.userKey):
-                    if (__brain)
-                        this.AIShot(this.enemyKey);
-                    else this.userShot();
+                    this.shotUser();
                     break;
                 case (this.enemyKey):
-                    this.AIShot(this.userKey);
+                    this.shotAI(this.userKey);
                     break;
                 default:
-                    throw new Error(h.getMessage('error_game_not_found'));
+                    throw new Error(h.getMessage('err_invalid_player'));
             }
-        } catch (e) {
-            this.ui.exceptionInfo(e);
+        } catch (err) {
+            h.showExceptions(err);
         }
     };
 
-    /**
-     * Вешиет событие клика пользователем по игровому полю противника
-     */
-    Battle.prototype.userShot = function () {
+    Battle.prototype.shotUser = function () {
         var self = this;
 
-        this.ui.clickToField(this.enemyKey, function (event) {
+        this.clickToField(this.enemyKey, function (event) {
             if (self.player !== self.userKey)
                 return false;
+
             try {
-                var fKey = self.enemyKey,
-                    Y = event.target.parentNode.cellIndex,
+                var Y = event.target.parentNode.cellIndex,
                     X = event.target.parentNode.parentNode.rowIndex;
 
-                self.shot([X, Y], fKey);
-            } catch (e) {
+                self.shot([X, Y], self.enemyKey);
+            } catch (err) {
                 self.game(self.userKey);
             }
         });
     };
 
-    /**
-     * Искуственный интелект.
-     *
-     * @param fKey
-     * @constructor
-     */
-    Battle.prototype.AIShot = function (fKey) {
-        var fSize = options.fSize,
-            tPoint = options.tPoint,
-            field = this.fields[fKey];
-
+    Battle.prototype.shotAI = function (fKey) {
         var self = this,
+            field = this.fields[fKey],
+            fSize = options.fSize,
+            tPoint = options.tPoint,
             point = getPointShot();
 
         setTimeout(function () {
             self.shot(point, fKey);
-        }, options.timeoutAI);
+        }, 300);
 
 
         // private method....................
@@ -524,17 +321,18 @@
         function getPointShot() {
             var point = [];
 
-            if (self._lsKill[fKey].length > 0) {
+            if (self._lsKill[fKey].length > 0) {                    // если ранее попадали по кораблю
                 point = getPointFinishing();
-            } else {
+            } else {                                                // случайный выстрел
                 var rInx = h.rand(0, self._lsShot[fKey].length - 1);
-                point = self._lsShot[fKey][rInx];
-                self._lsShot[fKey].splice(rInx, 1);
+                point = self._lsShot[fKey][rInx];                   // получаем случайную точку
+                self._lsShot[fKey].splice(rInx, 1);                 // удаляем точку из доступных для выстрела
             }
 
-            if (point instanceof Array && point[0] !== "undefined" && point[1] !== "undefined") {
+            // проверка полученной точки...
+            if (point instanceof Array && point[0] !== 'undefined' && point[1] !== 'undefined') {
                 var X = point[0], Y = point[1];
-                if (X >= 0 && X < fSize.v && Y >= 0 && Y < fSize.h) {
+                if (X >= 0 && X < options.fSize.v && Y >= 0 && Y < options.fSize.h) {
                     if (field[X][Y] !== tPoint.NUL || field[X][Y] !== tPoint.BAR)
                         return point;
                 }
@@ -545,31 +343,38 @@
 
         // вернет точку для добивания
         function getPointFinishing() {
-            var cP = [[-1, 0], [0, -1], [1, 0], [0, 1]],
+            var cP = [[-1, 0], [0, -1], [1, 0], [0, 1]],            // возможные направления для добивания
                 lsP = self._lsKill[fKey],
                 point = [];
 
-            if (lsP.length == 1) {                      // первый выстрел при добивание
+            var i = 0, n = 0;
+
+            if (lsP.length == 1) {                                  // первый выстрел при добивание
                 var X = lsP[0][0], Y = lsP[0][1];
 
-                cP = h.shuffle(cP);
-                for (var i = 0; i < cP.length; i++) {
+                cP = h.shuffle(cP);                                 // перемешает массив
+                for (i = 0; i < cP.length; i++) {                   // выбираем случайное направление для выстрела
                     var pX = X + cP[i][0],
                         pY = Y + cP[i][1];
+
+                    // точка в рамках поля и туда еще не стреляли
                     if (pX >= 0 && pX < fSize.v && pY >= 0 && pY < fSize.h) {
                         if (field[pX][pY] !== tPoint.NUL)
                             return [pX, pY];
                     }
                 }
-            } else {                                    // второй и т.д выстрел при добивании
-                var posHorizontal = lsP[0][0] == lsP[1][0],
-                    min = fSize.h + fSize.v, max = 0;
-                for (var i = 0; i < lsP.length; i++) {
-                    var n = posHorizontal ? lsP[i][1] : lsP[i][0];
+            } else {                                                // второй и т.д выстрел при добивании
+                var posHorizontal = lsP[0][0] == lsP[1][0],         // определяем направление корабля
+                    min = fSize.h + fSize.v, max = 0;               // крайние точки
+
+                for (i = 0; i < lsP.length; i++) {                  // поиск крайних точек корабля
+                    n = posHorizontal ? lsP[i][1] : lsP[i][0];
 
                     min = min > n ? n : min;
                     max = max < n ? n : max;
                 }
+
+                // случайным образом определяем с какого края стрелять по караблю
                 var nP = h.rand(1, 2) % 2 ? min - 1 : max + 1;
                 point = posHorizontal ? [lsP[0][0], nP] : [nP, lsP[0][1]];
             }
@@ -578,69 +383,61 @@
         }
     };
 
-    /**
-     * Осуществляет выстрел по игровому полю.
-     *
-     * @param point
-     * @param fKey
-     */
     Battle.prototype.shot = function (point, fKey) {
-        var fSize = options.fSize,
-            tPoint = options.tPoint;
-
         var self = this,
-            _fKey = fKey == this.userKey ? this.enemyKey : this.userKey,
-            X = point[0], Y = point[1];
+            ctnCellShip = 0,
+            _fKey = fKey == this.userKey ? this.enemyKey : this.userKey;
+        var X = point[0], Y = point[1];
 
-        var check = checkPoint(point, fKey);
+        var check = checkPoint(point, fKey);                        // проверка выстрела
+        if (typeof check == 'boolean') {                            // во что то попал
+            if (check) {                                            // попал на по кораблю -> РАНИЛ
+                this._ctnCell[fKey]--;                              // минус 1 точка для выстрела
 
-        if (typeof check == "boolean") {        // попал в игровое поле
-            if (check) {                        // ранил
-                // установка меток игрового поля
-                this._ctnCell[fKey]--;
-                this.fields[fKey][X][Y] = tPoint.KIL;
-                this.ui.setMarker(point, tPoint.KIL, fKey);
-
+                this.fields[fKey][X][Y] = options.tPoint.KIL;
                 var isKill = isKillShip(point, fKey);
-                if (typeof isKill == "boolean") {       // ранил
-                    this._lsKill[fKey].push(point);
-                    this.ui.printLog(point, tPoint.KIL, fKey);
-                    this.ui.setHelpMarker(point, fKey, function (_point, fKey) {
-                        var _pX = _point[0],
-                            _pY = _point[1];
-                        if (options.helpPoint) {
-                            self.ui.setMarker(_point, tPoint.NUL, fKey, true);
-                        }
-                        self.fields[fKey][_pX][_pY] = tPoint.NUL;
-                    });
-                } else {                                // убил
-                    this._lsKill[fKey] = [];    // корабль уничтожен, очистка последних попаданий
+                if (typeof isKill == 'boolean') {                   // корабль просто ранен
+                    this._lsKill[fKey].push(point);                 // сохраняем последнее попадание
 
-                    this.ui.printLog(point, tPoint.KIL + "_death", fKey);
+                    this.setMarker(point, fKey, options.tPoint.KIL);
+                    this.setHelpMarker(point, fKey, function (_point) {// при ранении установим точки подсказки
+                        var _X = _point[0],
+                            _Y = _point[1];
+                        self.fields[fKey][_X][_Y] = options.tPoint.NUL;
+                    });
+                }
+                else {                                              // корабль убит
+                    this._lsKill[fKey] = [];                        // очищаем список последнего попадания
+
                     isKill.forEach(function (_point) {
-                        var _pX = _point[0], _pY = _point[1];
+                        var _X = _point[0],
+                            _Y = _point[1];
 
-                        if (options.helpPoint) {
-                            self.ui.setMarker(_point, tPoint.NUL, fKey, true);
+                        // ставим метки на игровое поле, если разрешены подсказки
+                        if (options.printHelp) {
+                            self.setMarker(_point, fKey, options.tPoint.NUL, true);
+                            self.fields[fKey][_X][_Y] = options.tPoint.NUL;
                         }
-                        self.fields[fKey][_pX][_pY] = tPoint.NUL;
+                        if (_fKey == options.player.kBrain)
+                            self.fields[fKey][_X][_Y] = options.tPoint.NUL;
                     });
+
+                    this.setMarker(point, fKey, options.tPoint.KIL + '_death');
+                    this.shipInfoMap(ctnCellShip, fKey);
                 }
 
-                if (isFinalGame(fKey)) {        // конец игры!
-                    this.ui.finalGame(_fKey, fKey);
-                }
-                else this.game(_fKey);          // повтор хода
-            } else {                            // мимо
-                // установка меток игрового поля
-                this.fields[fKey][X][Y] = tPoint.NUL;
-                this.ui.setMarker(point, tPoint.NUL, fKey);
-                this.ui.printLog(point, tPoint.NUL, fKey);
-
-                this.game(fKey);                // переход хода
+                if (this._ctnCell[fKey] === 0) {                    // конец игры
+                    this.player = false;
+                    this.gameOver(_fKey);
+                } else this.game(_fKey);                            // повтор хода
+            }
+            else {                                                  // попадание по пустой клетке -> МИМО
+                this.fields[fKey][X][Y] = options.tPoint.NUL;
+                this.setMarker(point, fKey, options.tPoint.NUL);
+                this.game(fKey);                                    // переход кода
             }
         }
-        else this.game(_fKey);                  // уже стрелял в эту точку -> повтор хода
+        else this.game(_fKey);                                      // уже стрелял в эту точку -> повтор хода
 
 
         // private method....................
@@ -651,12 +448,12 @@
             var X = point[0], Y = point[1];
 
             switch (self.fields[fKey][X][Y]) {
-                case (tPoint.DEF):
-                    return false;    // мимо
-                case (tPoint.BAR):
-                    return true;     // ранил
-                default:
-                    return null;               // что то другое
+                case (options.tPoint.DEF):                          // мимо
+                    return false;
+                case (options.tPoint.BAR):                          // ранил
+                    return true;
+                default:                                            // что то другое
+                    return null;
             }
         }
 
@@ -664,46 +461,53 @@
         function isKillShip(point, fKey) {
             var cP = [[-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1]],
                 field = self.fields[fKey],
-                sPoints = [];
+                sPoints = [],
+                lsCellShip = [];
 
-            return _checkPointToKill(point) ? sPoints : false;
+            if (_checkPointToKill(point)) {
+                ctnCellShip = lsCellShip.length + 1;
+                return sPoints;
+            }
+            else return false;
 
 
             // private method....................
             // ..................................
 
+            // убит или нет корабль, если да то заполнет массив соседних точек
             function _checkPointToKill(point, noCheck) {
-                var X = point[0], Y = point[1],     // исходная проверяемая точка
-                    nX = false, nY = false;         // не проверяемая точка при повторе
-                var dopCheck = [];                  // дополнительные точки проверки
+                var X = point[0], Y = point[1],                     // исходная проверяемая точка
+                    nX = false, nY = false;                         // не проверяемая точка при повторе
+                var dopCheck = [];                                  // дополнительные точки проверки
 
-                if (typeof noCheck == "object") {
+                if (typeof noCheck == "object") {                   // не проверяемая точка, при рекурсии
                     nX = noCheck[0];
                     nY = noCheck[1];
                 }
 
-                for (var i = 0; i < cP.length; i++) {
+                for (var i = 0; i < cP.length; i++) {               // перебор точек по кругу
                     var pX = X + cP[i][0],
                         pY = Y + cP[i][1];
 
-                    if (pX == nX && pY == nY) {
+                    if (pX === nX && pY === nY) {                   // эту точку уже проверили
                         // точка проверенна при предыдущей итерации
                     } else {
                         // только если точка в рамках игрового поля
-                        if (pX >= 0 && pX < fSize.v && pY >= 0 && pY < fSize.h) {
+                        if (pX >= 0 && pX < options.fSize.v && pY >= 0 && pY < options.fSize.h) {
                             var val = field[pX][pY];
 
-                            if (val == tPoint.BAR)
+                            if (val == options.tPoint.BAR)
                                 return false;                       // целая часть корабля -> не убит
-                            else if (val == tPoint.KIL)
+                            else if (val == options.tPoint.KIL) {   // раненая часть корабля, запомним для рекурсии
+                                lsCellShip.push(pX + '_' + pY);     // подсчет палуб
                                 dopCheck.push([[pX, pY], [X, Y]]);  // доп.точка првоерки
-                            else
-                                sPoints.push([pX, pY]);             // подбитая часть корабля
+                            }
+                            else sPoints.push([pX, pY]);            // подбитая часть корабля,
                         }
                     }
                 }
 
-                // доп.точки проверки
+                // доп.точки проверки, если еще есть то запуск рекурсии
                 if (dopCheck.length === 0)
                     return true;                                    // точек более нет -> убит
                 else {
@@ -713,110 +517,129 @@
                             return false;
                         else sRes++;
                     }
-
                     return sRes == dopCheck.length;                 // проверенно == доп.точек
                 }
             }
         }
-
-        // проверяет окончание игры
-        function isFinalGame(fKey) {
-            return self._ctnCell[fKey] === 0;
-        }
     };
 
     // *****************************************************************************************************************
+
     /**
-     * Работа с пользовательским интерфейсом.
-     * Работа с UI осуществляется только через этот класс!
+     * Класс управления пользовательским интерфейсом
      *
+     * Требуется:
+     *      options = {}    - глобальный объект с опциями игры
+     *      h = {}          - глобальный обьект функций помошников
+     * @param htmlSelector  - document.querySelector
      * @constructor
      */
-    function GameUI(bf) {
-        try {
-            this.containerField = document.querySelector(options.containerField);
-            this.containerLog = document.querySelector(options.containerLog);
-            this.containerStatus = document.querySelector(options.containerStatus);
+    function GameUI(fields, battlefield) {
+        if (options.htmlSelector == null)
+            throw new Error(h.getMessage('err_invalid_selector'));
 
-            this.posLeft = true;
-            this.battlefild = bf;
+        this.fields = fields;
+        this.battlefield = battlefield;
 
-            this.defaultHTML();
-        } catch (e) {
-            this.exceptionInfo(e);
+        var self = this;
+        var playerName =
+            '<div class="left">' +
+            '   <a href="#">Battlefield</a>' +
+            '</div>' +
+            '<div class="right">' +
+            '   <span class="js" id="new_game">'+h.getMessage('new_game')+'</span>' +
+            '   <span class="js" id="config">'+h.getMessage('options')+'</span>' +
+            '</div>';
+
+        // очистка блока
+        options.htmlSelector.innerHTML = '';
+
+        // имена игроков
+        if (options.printName) {
+            var echoTotal = playerWinner.kUser + playerWinner.kBrain != 0;
+            playerName +=
+                '<div class="center">' +
+                '<span class="name" id="' + options.player.kUser + '">' + h.getPlayerName(options.player.kUser) + '</span>' +
+                (echoTotal ? '<span class="total" id="' + options.player.kUser + '">' + playerWinner.kUser + '</span>' : '') +
+                '<span>&</span>' +
+                (echoTotal ? '<span class="total" id="' + options.player.kBrain + '">' + playerWinner.kBrain + '</span>' : '') +
+                '   <span class="name" id="' + options.player.kBrain + '">' + h.getPlayerName(options.player.kBrain) + '</span>' +
+                '</div>';
         }
+
+        this.nameHtml = document.createElement('div');
+        this.nameHtml.setAttribute('class', 'bf-player-name');
+        this.nameHtml.innerHTML = playerName;
+        options.htmlSelector.appendChild(this.nameHtml);
+
+        // игровые поля
+        this.fieldHtml = document.createElement('div');
+        this.fieldHtml.setAttribute('class', 'bf-fields');
+        this.fieldHtml.innerHTML = this.getFieldHTML(options.player);
+        options.htmlSelector.appendChild(this.fieldHtml);
+
+        // логирование боя
+        if (options.printLog) {
+            this.logHtml = document.createElement('div');
+            this.logHtml.setAttribute('class', 'bf-logger');
+            this.logHtml.innerHTML = '<h2>' + h.getMessage('info_log_title') + '</h2><ul></ul>';
+            options.htmlSelector.appendChild(this.logHtml);
+        }
+
+
+        document.getElementById('new_game').onclick = function () {
+            self.battlefield.run();
+        };
+        document.getElementById('config').onclick = function () {
+            self.updateConfig();
+        };
+
     }
 
-    /**
-     * Автоматически печатает html по умолчанию для блоков
-     */
-    GameUI.prototype.defaultHTML = function () {
-        if (typeof this.containerStatus == "object") {
-            var kUser = options.player.kUser,
-                kEnemy = options.player.kEnemy;
-            var html =
-                '<span class="name ' + kUser + '">' + h.getMessage('player_' + kUser) + '</span>' +
-                '<span class="total ' + kUser + '">' + parseInt(this.battlefild.totals[kUser]) + '</span>' +
-                '<span>&amp;</span>' +
-                '<span class="total ' + kEnemy + '">' + this.battlefild.totals[kEnemy] + '</span>' +
-                '<span class="name ' + kEnemy + '">' + h.getMessage('player_' + kEnemy) + '</span>';
+    GameUI.prototype.getFieldHTML = function (player) {
+        var fields = this.fields,
+            html = '';
 
-            this.containerStatus.innerHTML = html;
+        for (var k in player) {
+            var fKey = player[k],
+                dopAttr = fKey == options.player.kUser ? 'lf' : 'rg',
+                printShip = dopAttr == 'lf';
+
+            html += '<div class="board ' + dopAttr + '">';
+            html += getFieldTable(fKey, printShip);
+            html += getBarrierInfo(fKey);
+            html += '</div>';
         }
 
-        if (typeof this.containerLog == "object") {
-            this.containerLog.appendChild(document.createElement('ul'));
-        }
-    };
-
-    /**
-     * Печатает таблицу игрового поля на страницу.
-     * Поля должны передаваться по одному, с ключем. Устанавливает первым левый, потом правый.
-     *
-     * @param field {?array}        Массив игрового поля
-     * @param fKey {?string}        Ключ игрового поля
-     */
-    GameUI.prototype.createFieldHTML = function (field, fKey) {
-        var box = document.createElement('div'),
-            printShip = this.posLeft ? true : __brain,
-            dopAttr = this.posLeft ? 'lf' : 'rg';
-
-        var table = createHtmlField(field, fKey, printShip),
-            barrier = createBarrierInfo();
-
-        box.setAttribute('class', 'board ' + dopAttr);
-        box.innerHTML = table + barrier;
-        this.containerField.appendChild(box);
-
-        this.posLeft = this.posLeft ? false : true;
+        return html;
 
 
         // private method....................
         // ..................................
 
-        // вернет html игрового поля
-        function createHtmlField(field, fKey, printShip) {
-            if (!field instanceof Array)
-                throw new Error(h.getMessage('error_field_invalid'));
+        // вернет HTML игрового поля
+        function getFieldTable(fKey, printShip) {
+            printShip = printShip || false;
+            var table = '';
 
-            var _ship = printShip || false,
-                table = '';
-
-            table += '<table class="field ' + fKey + '">';
-            for (var x = 0; x < field.length; x++) {
+            table += '<table class="field" id="' + fKey + '">';
+            for (var x = 0; x < options.fSize.v; x++) {
                 table += '<tr>';
-                for (var y = 0; y < field[x].length; y++) {
+                for (var y = 0; y < options.fSize.h; y++) {
                     var mm = '', ll = '';
 
-                    if (options.marker !== false && typeof options.marker == 'object') {
-                        var txtMM = typeof options.marker.v != 'undefined' ? (options.marker.v == 'string' ? h.getLetter(y) : (y + 1)) : (y + 1),
-                            txtLL = typeof options.marker.h != 'undefined' ? (options.marker.h == 'string' ? h.getLetter(x) : (x + 1)) : (x + 1);
+                    // установка маркеров
+                    if (options.fMarker !== false && typeof options.fMarker == 'object') {
+                        var txtMM = typeof options.fMarker.h != 'undefined' ? (options.fMarker.h == 'char' ? h.getLetter(y) : (y + 1)) : (y + 1),
+                            txtLL = typeof options.fMarker.v != 'undefined' ? (options.fMarker.v == 'char' ? h.getLetter(x) : (x + 1)) : (x + 1);
 
                         mm = x === 0 ? '<div class="mm">' + txtMM + '</div>' : '';
                         ll = y === 0 ? '<div class="ll">' + txtLL + '</div>' : '';
                     }
 
-                    var ship = _ship ? (field[x][y] == options.tPoint.BAR ? ' let' : '') : '';
+                    var ship = '';
+                    if (printShip)
+                        ship = fields[fKey][x][y] == options.tPoint.BAR ? ' let' : '';
                     table += '<td>' + mm + ll + '<div class="box' + ship + '"></div></td>';
                 }
                 table += '</tr>';
@@ -826,377 +649,341 @@
             return table;
         }
 
-        // вернет список доступных кораблей
-        function createBarrierInfo() {
-            var str = '';
+        // вернет HTML списка кораблей
+        function getBarrierInfo(fKey) {
+            var html = '';
 
             options.fBarrier.forEach(function (ship) {
                 var box = '';
                 for (var c = 0; c < ship[0]; c++)
                     box += '<div class="box"></div>';
-                str += '<div class="let"><span>x' + ship[1] + '</span>' + box + '</div>';
+                html +=
+                    '<div class="let" id="cell_' + ship[0] + '">' +
+                    '   <span data-ctn="' + ship[1] + '">x' + ship[1] + '</span>' +
+                    '   ' + box +
+                    '</div>';
             });
 
-            return '<div class="list-let">' + str + '</div>';
+            return '<div class="list-let" id="' + fKey + '">' + html + '</div>';
         }
     };
 
-    /**
-     * Выделит заголовок игрока.
-     *
-     * @param fKey {?string}        Ключ игрового поля
-     */
     GameUI.prototype.showProgress = function (fKey) {
-        this.containerStatus.querySelectorAll('.name').forEach(function (span) {
+        // в конце игры, блокируем игровые поля и убираем метку активности с имени
+        if (!fKey) {
+            this.fieldHtml.querySelectorAll('table.field').forEach(function (table) {
+                table.classList.add('timeout');
+            });
+
+            if (options.printName) {
+                this.nameHtml.querySelectorAll('.name').forEach(function (span) {
+                    span.classList.remove('act');
+                });
+            }
+            return false;
+        }
+
+        // делаем игровое поле неактивным
+        this.fieldHtml.querySelectorAll('table.field.timeout').forEach(function (table) {
+            table.classList.remove('timeout');
+        });
+        this.fieldHtml.querySelector('table.field#' + fKey).classList.add('timeout');
+
+        if (!options.printName)
+            return null;
+
+        // ставим метку кому перешел ход
+        this.nameHtml.querySelectorAll('.name').forEach(function (span) {
             span.classList.remove('act');
         });
-
-        this.containerStatus.querySelector('.name.' + fKey).classList.add('act');
+        this.nameHtml.querySelector('.name#' + fKey).classList.add('act');
     };
 
-    /**
-     * Отслеживает событие клика на игровое поле.
-     *
-     * @param fKey {?string}        Ключ игрового поля
-     * @param callback {?function}  Функция будет выполнена при клике
-     */
     GameUI.prototype.clickToField = function (fKey, callback) {
-        this.containerField.querySelector('table.field.' + fKey).onclick = callback;
+        this.fieldHtml.querySelector('table.field#' + fKey).onclick = callback;
     };
 
-    /**
-     *
-     * @param point {?array}        Точка выстрела, в формате [x, y]
-     * @param tPoint {?string}      Тип попадания из списка {options.tPoint}
-     * @param fKey {?string}        Ключ игрового поля
-     * @param auto {?boolean}       Автоматическая установка. Нет - по умолчанию
-     */
-    GameUI.prototype.setMarker = function (point, tPoint, fKey, auto) {
-        var auto = auto || false,
-            X = point[0],
-            Y = point[1];
-
-        var elClass = "";
-
-        switch (tPoint) {
-            case (options.tPoint.KIL):
-                elClass = 'kill';
-                break;
-            case (options.tPoint.KIL + "_death"):
-                elClass = 'kill';
-                break;
-            case (options.tPoint.NUL):
-                elClass = auto ? 'auto-null' : 'null';
-                break;
-        }
-
-        var box = this.containerField.querySelector('table.field.' + fKey)
-            .rows[X].cells[Y]
-            .querySelector('.box');
-
-        box.className += ' ' + elClass;
-    };
-
-    /**
-     * Петчатает на игровое поле точки подсказки.
-     * Раставляет точки по углам от попадания.
-     *
-     * @param point {?array}        Точка выстрела, в формате [x, y]
-     * @param fKey {?string}        Ключ игрового поля
-     */
-    GameUI.prototype.setHelpMarker = function (point, fKey, callback) {
+    GameUI.prototype.setMarker = function (point, fKey, tPoint, auto) {
         var X = point[0],
             Y = point[1],
-            sP = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+            elClass = '';
+        auto = auto || false;
+
+        switch (tPoint) {
+            case (options.tPoint.NUL):                          // мимо
+                elClass = auto ? 'auto-null' : 'null';
+                break;
+            case (options.tPoint.KIL):                          // ранил
+                elClass = 'kill';
+                break;
+            case (options.tPoint.KIL + '_death'):               // убил
+                elClass = 'kill';
+                break;
+            default:
+                return null;
+        }
+
+        if (!auto) this.printLog(point, fKey, tPoint);
+
+        var coll = this.fieldHtml.querySelector('table.field#' + fKey)
+            .rows[X].cells[Y];
+        coll.querySelector('.box').className += ' ' + elClass;
+
+        if (!auto) {
+            var shotBox = document.createElement('div');
+            shotBox.setAttribute('class', 'shot');
+            coll.appendChild(shotBox);
+
+            h.animateOpacity(shotBox, 2000);
+        }
+    };
+
+    GameUI.prototype.setHelpMarker = function (point, fKey, callback) {
+        if (!options.printHelp)
+            return false;
+
+        var sP = [[-1, -1], [1, -1], [1, 1], [-1, 1]],
+            X = point[0], Y = point[1];
 
         for (var i = 0; i < sP.length; i++) {
             var nX = X + sP[i][0],
                 nY = Y + sP[i][1];
 
             if (nX >= 0 && nX < options.fSize.v && nY >= 0 && nY < options.fSize.h) {
-                if (typeof callback == "function")
-                    callback([nX, nY], fKey)
+                this.setMarker([nX, nY], fKey, options.tPoint.NUL, true);
+                if (typeof callback == 'function')
+                    callback([nX, nY], fKey);
             }
         }
     };
 
-    /**
-     * Логирует выполненный ход на страницу.
-     *
-     * @param point {?array}        Точка выстрела, в формате [x, y]
-     * @param tPoint {?string}      Тип попадания из списка {options.tPoint}
-     * @param fKey {?string}        Ключ игрового поля
-     */
-    GameUI.prototype.printLog = function (point, tPoint, fKey) {
+    GameUI.prototype.shipInfoMap = function (ctnCell, fKey) {
+        var letBox = this.fieldHtml
+            .querySelector('.list-let#' + fKey)
+            .querySelector('#cell_' + ctnCell);
+
+        var span = letBox.querySelector('span'),
+            dCtn = parseInt(span.getAttribute('data-ctn')) - 1;
+
+        span.setAttribute('data-ctn', dCtn);
+        span.innerHTML = 'x' + dCtn;
+
+        var shot = document.createElement('div');
+        shot.setAttribute('class', 'shot');
+        span.appendChild(shot);
+
+        h.animateOpacity(shot, 3000);
+
+        if (dCtn == 0) {
+            var lsBox = letBox.querySelectorAll('div');
+            lsBox.forEach(function (box) {
+                box.className += ' kill';
+            });
+        }
+    };
+
+    GameUI.prototype.printLog = function (point, fKey, tPoint) {
+        if (!options.printLog)
+            return false;
+
+        var html = '';
         var X = point[0],
             Y = point[1];
-
         var tPoint_class = '',
             tPoint_name = '';
-
-        switch (tPoint) {
-            case (options.tPoint.KIL):
-                tPoint_class = 'war';
-                tPoint_name = 'ранил';
-                break;
-            case (options.tPoint.KIL + "_death"):
-                tPoint_class = 'kil';
-                tPoint_name = 'убил';
-                break;
-            case (options.tPoint.NUL):
-                tPoint_class = 'nul';
-                tPoint_name = 'мимо';
-                break;
-        }
-
         var player = fKey == options.player.kUser
-                ? h.getMessage('player_' + options.player.kEnemy) : h.getMessage('player_' + options.player.kUser),
+                ? h.getPlayerName(options.player.kBrain) : h.getPlayerName(options.player.kUser),
             __date = new Date(),
             time = __date.toLocaleTimeString(),
             marker = '';
 
-        marker += options.marker.h == 'string' ? h.getLetter(X) : (X + 1);
-        marker += "x";
-        marker += options.marker.v == 'string' ? h.getLetter(Y) : (Y + 1);
+        switch (tPoint) {
+            case (options.tPoint.KIL):
+                tPoint_class = 'war';
+                tPoint_name = 'log_kill';
+                break;
+            case (options.tPoint.KIL + '_death'):
+                tPoint_class = 'kil';
+                tPoint_name = 'log_death';
+                break;
+            case (options.tPoint.NUL):
+                tPoint_class = 'nul';
+                tPoint_name = 'log_past';
+                break;
+        }
 
-        var html =
+        marker += options.fMarker.v == 'char' ? h.getLetter(X) : (X + 1);
+        marker += "x";
+        marker += options.fMarker.h == 'char' ? h.getLetter(Y) : (Y + 1);
+
+        html +=
             '<span class="point">' + marker + '</span>' +
-            '<span class="type ' + tPoint_class + '">' + tPoint_name + '</span>' +
+            '<span class="type ' + tPoint_class + '">' + h.getMessage(tPoint_name) + '</span>' +
             '<span class="name">' + player + '</span>' +
             '<span class="time">' + time + '</span>';
 
         var li = document.createElement('li');
         li.innerHTML = html;
 
-        this.containerLog.querySelector('ul').insertBefore(li, this.containerLog.querySelector('ul').firstChild);
+        this.logHtml.querySelector('ul').insertBefore(li, this.logHtml.querySelector('ul').firstChild);
     };
 
-    /**
-     * Показывает сообщение об окончании игры
-     *
-     * @param winner_fKey
-     * @param loser_fKey
-     */
-    GameUI.prototype.finalGame = function (winner_fKey, loser_fKey) {
+    GameUI.prototype.showShip = function (fKey) {
+        var field = this.fields[fKey],
+            table = this.fieldHtml.querySelector('table#' + fKey);
+
+        for (var X = 0; X < field.length; X++) {
+            for (var Y = 0; Y < field[X].length; Y++)
+                if (field[X][Y] == options.tPoint.BAR) {
+                    table
+                        .rows[X].cells[Y]
+                        .querySelector('.box')
+                        .className += ' let';
+                }
+        }
+    };
+
+    GameUI.prototype.gameOver = function (winner) {
         var self = this,
-            str = '';
+            kWinner = options.player.kUser == winner ? 'kUser' : 'kBrain';
+        var title = '',
+            elClass = '',
+            message = '';
 
-        ++this.battlefild.totals[winner_fKey];
+        // прибавляем победу...
+        playerWinner[kWinner]++;
 
-        if (__recursive) {
-            str = 'Новый раунд начнется через <b>'+(options.timeoutBrain/1000)+'</b> сек.';
+        if (options.player.kUser == winner) {
+            elClass = 'winner';
+            title = h.getMessage('you_winner');
+            message = h.getMessage('info_winner');
+        } else {
+            this.showShip(winner);
 
-            var _modal = this.modalWindow('Конец раунда', str, [{
-                value: 'Играть самому',
-                className: 'green',
-                onClick: function (env, modal) {
-                    clearTimeout(timerId);
-
-                    for (var k in self.battlefild.totals) {
-                        self.battlefild.totals[k] = 0;
-                    }
-
-                    options = _defaultPublic;
-                    options = Object.assign(options, _defaultPrivate);
-
-                    self.battlefild
-                        .recursive(false)
-                        .brainBrain(false)
-                        .run();
-
-                    modal.close();
-                }
-            }, {
-                value: 'Остановить',
-                className: 'red',
-                onClick: function (env, modal) {
-                    clearTimeout(__recursiveTimeout);
-                    modal.close();
-                }
-            }]);
-
-            __recursiveTimeout = setTimeout(function () {
-                self.battlefild.run();
-                _modal.close();
-            }, options.timeoutBrain);
-
-            return;
+            elClass = 'lose';
+            title = h.getMessage('you_lose');
+            message = h.getMessage('info_loser');
         }
 
-        str += '<div class="final">';
-        str +=
-            '<table>' +
-            '   <tr class="winner">' +
-            '       <td><b>Победитель</b></td>' +
-            '       <td>' + h.getMessage('player_' + winner_fKey) + '</td>' +
-            '   </tr>' +
-            '   <tr class="loser">' +
-            '       <td><b>Проиграл</b></td>' +
-            '       <td>' + h.getMessage('player_' + loser_fKey) + '</td>' +
-            '   </tr>' +
-            '</table>';
-        str += '</div>';
+        var contentHtml =
+            '<div class="bf-go-smile ' + elClass + '"></div>' +
+            '<div class="bf-go-text">' +
+            '   <h2>' + title + '</h2>' +
+            '   <h3>' + message + '</h3>' +
+            '</div>';
 
-        this.modalWindow('Конец игры', str, [{
-            value: 'Новая игра',
-            className: 'green',
-            onClick: function (env, modal) {
-                self.battlefild.run();
+        h.modalWindow(h.getMessage('game_over'), contentHtml, [{
+            elValue: h.getMessage('new_game'),
+            onClick: function (modal) {
                 modal.close();
+                self.battlefield.run();
             }
         }, {
-            value: 'Закрыть',
-            className: 'red',
-            onClick: function (env, modal) {
+            elValue: h.getMessage('update_options'),
+            elClass: 'btn-warning',
+            onClick: function (modal) {
                 modal.close();
+                self.updateConfig();
+            }
+        }, {
+            elValue: h.getMessage('close'),
+            elClass: 'btn-danger',
+            onClick: function (modal) {
+                modal.close();
+                self.showProgress(false);
             }
         }]);
     };
 
-    /**
-     * Отображает модальное окно на странице.
-     *
-     * @param titleStr {?string}    Заголовок модального окна
-     * @param contentHtml {?html}   Содержимое окна
-     * @param footerBtn {?array}    Параметры кнопок в подвале
-     */
-    GameUI.prototype.modalWindow = function (titleStr, contentHtml, footerBtn) {
-        var modal = {
-            _fontID: 'modal_font',
-            _contID: 'modal_cont',
+    GameUI.prototype.updateConfig = function () {
+        var self = this;
 
-            modBox: false,
-            closeBtn: false,
-            box: false,
-            foot: false,
+        var contentHtml =
+            '<table class="bf-config">' +
+            '   <tr>' +
+            '       <td class="name top">Уровень сложности:</td>' +
+            '       <td class="options" id="config_level">' +
+            '           <button class="btn ' + (globalLevel == "easy" ? "active" : "") + '" value="easy">Легкий</button>' +
+            '           <button class="btn '+(globalLevel == "middle" ? "active" : "")+'" value="middle">Средний</button>' +
+            '           <button class="btn '+(globalLevel == "hard" ? "active" : "")+'" value="hard">Сложный</button>' +
+            '       </td>' +
+            '   </tr>' +
+            '</table>';
+        contentHtml = '<form>' + contentHtml + '</form>';
 
-            constructModal: function () {
-                this.createHTML();
+        var newLevel = '';
 
-                this.modBox = document.querySelector('.modal-box#' + this._contID);
-                this.closeBtn = this.modBox.querySelector('.modal-close');
-                this.box = this.modBox.querySelector('.box');
-                this.foot = this.modBox.querySelector('.mod_foot');
-
-                this.box.innerHTML = contentHtml;
-
-                if (footerBtn instanceof Array && footerBtn.length > 0) {
-                    var self = this,
-                        modBtn = [];
-                    footerBtn.forEach(function (item, i) {
-                        var _param = typeof item.className == "string" ? item.className : '';
-
-                        modBtn[i] = document.createElement('button');
-                        modBtn[i].setAttribute('class', 'btn ' + _param);
-                        modBtn[i].innerHTML = item.value;
-
-                        if (typeof item.onClick == "function") {
-                            modBtn[i].onclick = function (event) {
-                                item.onClick(event, self);
-                            };
-                        }
-
-                        self.foot.appendChild(modBtn[i]);
-                    });
+        h.modalWindow(h.getMessage('options'), contentHtml, [{
+            elValue: h.getMessage('new_game'),
+            onClick: function (modal) {
+                try {
+                    if (newLevel.length > 0 && newLevel != globalLevel)
+                        self.battlefield.setLevel(newLevel);
+                    self.battlefield.run();
+                } catch (err) {
+                    h.showExceptions(err);
                 }
-                else this.foot.style.display = 'none';
 
-                this.autoPosition();
-
-                var self = this;
-                this.closeBtn.onclick = function () {
-                    self.close();
-                };
-            },
-            createHTML: function () {
-                var crFont = document.createElement('div');
-                crFont.setAttribute('class', 'modal-font');
-                crFont.setAttribute('id', this._fontID);
-
-                var crCont = document.createElement('div');
-                crCont.setAttribute('class', 'modal-box');
-                crCont.setAttribute('id', this._contID);
-                crCont.innerHTML = '<div class="modal-close">&#215;</div>' +
-                    '<div class="mod_head">' + titleStr + '</div>' +
-                    '<div class="box"></div>' +
-                    '<div class="mod_foot"></div>';
-
-                var body = document.querySelector('body');
-                body.appendChild(crFont);
-                body.appendChild(crCont);
-            },
-            autoPosition: function () {
-                var wid2 = this.modBox.clientWidth / 2,
-                    hei2 = this.modBox.clientHeight / 2;
-
-                this.modBox.style.marginTop = hei2 * (-1) + 'px';
-                this.modBox.style.marginLeft = wid2 * (-1) + 'px';
-            },
-            close: function () {
-                var _font = document.querySelector('.modal-font#' + this._fontID),
-                    _cont = document.querySelector('.modal-box#' + this._contID);
-
-                if (_font !== null)
-                    document.body.removeChild(_font);
-                if (_cont !== null)
-                    document.body.removeChild(_cont);
+                modal.close();
             }
-        };
-        modal.constructModal();
+        },{
+            elValue: h.getMessage('set_default_params'),
+            elClass: 'btn-warning',
+            onClick: function (modal) {
+                self.battlefield.setLevel('middle');
+                self.battlefield.run();
 
-        return modal;
-    };
+                modal.close();
+            }
+        }, {
+            elValue: h.getMessage('close'),
+            elClass: 'btn-danger',
+            onClick: function (modal) {
+                modal.close();
+            }
+        }]);
 
-    /**
-     * Выводит информацию об ошибке в пользовательский интерфейс
-     *
-     * @param error {exceprion}
-     */
-    GameUI.prototype.exceptionInfo = function (error) {
-        console.log(error)
-        var self = this,
-            title = '',
-            content = '',
-            btn = [];
+        var btnList = document
+            .getElementById('config_level')
+            .querySelectorAll('button');
 
-        switch (error.name) {
-            case ('Error'):
-                title = 'Критическая ошибка';
-                content = '<b>' + error.message + '</b><span class="info">Невозможнно продолжить игру</span>';
-                btn = [{
-                    value: 'Параметры по умолчанию',
-                    className: 'green',
-                    onClick: function (env, modal) {
-                        options = _defaultPublic;
-                        options = Object.assign(options, _defaultPrivate);
-                        self.battlefild.run();
-                        modal.close();
-                    }
-                }];
-                break;
-            case ('TypeError'):
-                title = 'Не верно указаны параметры';
-                content = '<b>' + error.message + '</b><span class="info">Измените настройки игры</span>';
-                break;
-            default:
-                title = 'Ошибка типа: ' + error.name;
-                content = '<b>' + error.message + '</b>';
-        }
+        btnList.forEach(function (btn) {
+            btn.onclick = function (env) {
+                newLevel = env.srcElement.value;
 
-        this.modalWindow(title, content, btn);
+                btnList.forEach(function (b) {
+                    b.classList.remove('active');
+                });
+                env.srcElement.classList += ' active';
+
+                return false;
+            }
+        });
     };
 
     // *****************************************************************************************************************
+
     var h = {
-        __userName: 'Игрок',
-        __brainName: 'Компьютер',
-        __userNameDef: 'Игрок',
-        __brainNameDef: 'Компьютер',
+        playerName: {
+            def: {
+                kUser: 'Игрок',
+                kBrain: 'Компьютер'
+            }
+        },
 
         rand: function (min, max) {
-            var min = min || 0,
-                max = max || 100;
+            min = min || 0;
+            max = max || 100;
+
             return parseInt(Math.random() * (max - min + 1) + min);
+        },
+        getLetter: function (key, operand) {
+            var operand = operand || '',
+                alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            if (key > alphabet.length)
+                return h.getLetter(key - alphabet.length, (operand == '' ? 1 : operand + 1));
+
+            return alphabet[key] + operand;
         },
         shuffle: function (arr) {
             var inx, buffer;
@@ -1209,31 +996,172 @@
             }
             return arr;
         },
-        getLetter: function (key, operand) {
-            var operand = operand || '',
-                alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            if (key > alphabet.length)
-                return h.getLetter(key - alphabet.length, (operand == '' ? 1 : operand + 1));
-
-            return alphabet[key] + operand;
-        },
         getMessage: function (type) {
             var mess = {
-                error_field_name: 'Не верно указаны названия игровых полей',
-                error_field_size: 'Неверно установлен размер игрового поля',
-                error_field_invalid: 'Не могу напечатать игровое поле, неверный формат',
-                error_barrier_type: 'Неверно указан список кораблей',
-                error_point_type: 'Не установлены типы содержимого',
-                error_max_iterations: 'Чего то я залип в рекурсии, может стоит изменить параметры??',
-                error_ui_instance: 'Я не могу взаимодействовать с интерфейсом из за неправильно переданного параметра',
-                error_game_not_found: 'Ход не известного мне игрока',
-                player_FUser: this.__userName,
-                player_FBrain: this.__brainName
+                start_game: 'Начать игру',
+                new_game: 'Новая игра',
+                game_over: 'Игра закончена',
+                you_lose: 'Ты проиграл',
+                you_winner: 'Ты выиграл',
+                options: 'Настройки игры',
+                update_options: 'Изменить настройки',
+                close: 'Закрыть',
+                update_page: 'Обновить страницу',
+                set_default_params: 'Настройки по умолчанию',
+
+                log_kill: 'ранил',
+                log_death: 'убил',
+                log_past: 'мимо',
+
+                // error
+                err_invalid_selector: 'Указанный HTML блок на странице не найден',
+                err_max_iteration: 'Не получилось установить корабли на игровое поле, измените настройки',
+                err_invalid_player: 'Неизвестный игрок',
+                err_invalid_field: 'Некорректное игровое поле',
+                err_player_name: 'Переданны не корректные ключи играков',
+                err_size_field: 'Игровое поле не должно быть меньше 10х10 или больше 25х25, измените настройки',
+                err_barrier: 'Не корректный список кораблей',
+                err_invalid_level: 'Указан несуществующий уровень сложности',
+
+                // info
+                info_log_title: 'Состояние игрового поля',
+                info_title_error: 'Критическая ошибка',
+                info_title_range_error: 'Некорректные настройки',
+                info_winner: 'Замечательная победа,<br>попробуешь еще?',
+                info_loser: 'В следующий раз повезет больше,<br>попробуешь еще?'
             };
 
-            return typeof mess[type] == "string" ? mess[type] : type;
+            return typeof mess[type] == 'string' && mess[type].length > 0 ? mess[type] : type;
+        },
+        getPlayerName: function (fKey) {
+            var key = fKey == options.player.kUser ? 'kUser' : 'kBrain';
+            return this.playerName.def[key];
+        },
+        showExceptions: function (err) {
+            var title = '',
+                content = '',
+                button = [];
+
+            switch (err.name) {
+                case ('Error'):
+                    title = h.getMessage('info_title_error');
+                    content = err.message;
+                    break;
+                case ('RangeError'):
+                    title = h.getMessage('info_title_range_error');
+                    content = err.message;
+                    button = [{
+                        elValue: h.getMessage('set_default_params'),
+                        onClick: function () {
+                            var b = new Battlefield(options.htmlSelector, options);
+                            b.setLevel('middle').run();
+                        }
+                    }];
+                    break;
+                default:
+                    title = err.name;
+                    content = err.message;
+            }
+
+            this.modalWindow(title, content, button);
+        },
+        modalWindow: function (title, contentHTML, button) {
+            var modal = {
+                font: false,
+                window: false,
+
+                construct: function () {
+                    this.createHTML().autoPosition();
+
+                    if (!(button instanceof Array) || button.length == 0) {
+                        this.window.querySelector('.footer').style.display = 'none';
+                        return false;
+                    }
+
+                    var footer = this.window.querySelector('.footer'),
+                        on = [];
+
+                    for (var i = 0; i < button.length; i++) {
+                        var btn = button[i],
+                            dopClass = typeof button[i].elClass == 'string' ? ' ' + btn.elClass : '';
+
+                        on[i] = document.createElement('button');
+                        on[i].setAttribute('class', 'btn' + dopClass);
+                        on[i].setAttribute('id', 'btn_' + i);
+                        on[i].innerHTML = btn.elValue;
+                        on[i].addEventListener('click', eventListener(i, button), false);
+
+                        footer.appendChild(on[i]);
+                    }
+                },
+                createHTML: function () {
+                    var _font = document.querySelector('.bf-modal-font'),
+                        _window = document.querySelector('.bf-modal-window');
+                    if (_font != null) document.body.removeChild(_font);
+                    if (_window != null) document.body.removeChild(_window);
+
+
+                    this.font = document.createElement('div');
+                    this.font.setAttribute('class', 'bf-modal-font');
+
+                    this.window = document.createElement('div');
+                    this.window.setAttribute('class', 'bf-modal-window');
+                    this.window.innerHTML =
+                        '<div class="content">' +
+                        '   <div class="header">' + title + '</div>' +
+                        '   <div class="cont">' + contentHTML + '</div>' +
+                        '   <div class="footer"></div>' +
+                        '</div>';
+
+                    document.body.appendChild(this.font);
+                    document.body.appendChild(this.window);
+
+                    return this;
+                },
+                autoPosition: function () {
+                    var wid2 = this.window.clientWidth / 2,
+                        hei2 = this.window.clientHeight / 2;
+
+                    this.window.style.marginTop = hei2 * (-1) + 'px';
+                    this.window.style.marginLeft = wid2 * (-1) + 'px';
+                },
+                close: function () {
+                    document.body.removeChild(this.font);
+                    document.body.removeChild(this.window);
+                }
+            };
+
+            modal.construct();
+
+
+            // private method....................
+            // ..................................
+
+            // вешает событие на кнопку в модальном окне
+            function eventListener(i, obj) {
+                return function (event) {
+                    if (typeof obj[i].onClick == 'function')
+                        obj[i].onClick(modal, event);
+                };
+            }
+        },
+        animateOpacity: function (element, time) {
+            element.style.opacity = 1;
+
+            var t = setInterval(function () {
+                element.style.opacity = element.style.opacity - (100 / (time / 0.1));
+                if (element.style.opacity <= 0) {
+                    clearInterval(t);
+                    try {
+                        element.parentNode.removeChild(element);
+                    } catch (e) {
+                    }
+                }
+            }, 1);
         }
     };
 
-    global.Battlefield = Battlefield;
-})(this);
+    // *****************************************************************************************************************
+
+    window.Battlefield = Battlefield;
+})(window);
