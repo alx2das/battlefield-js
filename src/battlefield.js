@@ -465,7 +465,10 @@
                 lsCellShip = [];
 
             if (_checkPointToKill(point)) {
-                ctnCellShip = lsCellShip.length + 1;
+                // ctnCellShip = lsCellShip.length + 1;
+                lsCellShip.push(point);
+                ctnCellShip = lsCellShip;
+
                 return sPoints;
             }
             else return false;
@@ -499,7 +502,7 @@
                             if (val == options.tPoint.BAR)
                                 return false;                       // целая часть корабля -> не убит
                             else if (val == options.tPoint.KIL) {   // раненая часть корабля, запомним для рекурсии
-                                lsCellShip.push(pX + '_' + pY);     // подсчет палуб
+                                lsCellShip.push([pX, pY]);          // подсчет палуб
                                 dopCheck.push([[pX, pY], [X, Y]]);  // доп.точка првоерки
                             }
                             else sPoints.push([pX, pY]);            // подбитая часть корабля,
@@ -547,8 +550,8 @@
             '   <a href="#">Battlefield</a>' +
             '</div>' +
             '<div class="right">' +
-            '   <span class="js" id="new_game">'+h.getMessage('new_game')+'</span>' +
-            '   <span class="js" id="config">'+h.getMessage('options')+'</span>' +
+            '   <span class="js" id="new_game">' + h.getMessage('new_game') + '</span>' +
+            '   <span class="js" id="config">' + h.getMessage('options') + '</span>' +
             '</div>';
 
         // очистка блока
@@ -758,9 +761,11 @@
     };
 
     GameUI.prototype.shipInfoMap = function (ctnCell, fKey) {
+        var count = ctnCell.length;
+
         var letBox = this.fieldHtml
             .querySelector('.list-let#' + fKey)
-            .querySelector('#cell_' + ctnCell);
+            .querySelector('#cell_' + count);
 
         var span = letBox.querySelector('span'),
             dCtn = parseInt(span.getAttribute('data-ctn')) - 1;
@@ -780,17 +785,31 @@
                 box.className += ' kill';
             });
         }
+
+        var table = this.fieldHtml.querySelector('.field#' + fKey);
+        ctnCell.forEach(function (ship) {
+            var X = ship[0],
+                Y = ship[1];
+
+            table
+                .rows[X].cells[Y]
+                .querySelector('.box')
+                .className += ' death';
+        });
     };
 
     GameUI.prototype.printLog = function (point, fKey, tPoint) {
         if (!options.printLog)
             return false;
 
-        var html = '';
-        var X = point[0],
-            Y = point[1];
+        var self = this;
+
+        var html = '',
+            X = point[0], Y = point[1];
+
         var tPoint_class = '',
             tPoint_name = '';
+
         var player = fKey == options.player.kUser
                 ? h.getPlayerName(options.player.kBrain) : h.getPlayerName(options.player.kUser),
             __date = new Date(),
@@ -823,9 +842,32 @@
             '<span class="time">' + time + '</span>';
 
         var li = document.createElement('li');
+        li.setAttribute('data-fkey',fKey);
+        li.setAttribute('data-x', X);
+        li.setAttribute('data-y', Y);
         li.innerHTML = html;
 
         this.logHtml.querySelector('ul').insertBefore(li, this.logHtml.querySelector('ul').firstChild);
+
+        // при наведении на логи, подсветка точки игрового поля
+        li.onmouseover = function (event) {
+            if (event.target.nodeName != 'LI')
+                return false;
+
+            var fKey = event.target.getAttribute('data-fkey'),  // event.target.dataset.fkey,
+                X = event.target.getAttribute('data-x'),        // event.target.dataset.x,
+                Y = event.target.getAttribute('data-y');        // event.target.dataset.y;
+
+            var td = self.fieldHtml.querySelector('.field#' + fKey).rows[X].cells[Y],
+                shot = document.createElement('div');
+
+            shot.setAttribute('class', 'shot');
+            td.appendChild(shot);
+
+            li.onmouseout = function () {
+                h.animateOpacity(shot, 1000);
+            };
+        };
     };
 
     GameUI.prototype.showShip = function (fKey) {
@@ -904,8 +946,8 @@
             '       <td class="name top">Уровень сложности:</td>' +
             '       <td class="options" id="config_level">' +
             '           <button class="btn ' + (globalLevel == "easy" ? "active" : "") + '" value="easy">Легкий</button>' +
-            '           <button class="btn '+(globalLevel == "middle" ? "active" : "")+'" value="middle">Средний</button>' +
-            '           <button class="btn '+(globalLevel == "hard" ? "active" : "")+'" value="hard">Сложный</button>' +
+            '           <button class="btn ' + (globalLevel == "middle" ? "active" : "") + '" value="middle">Средний</button>' +
+            '           <button class="btn ' + (globalLevel == "hard" ? "active" : "") + '" value="hard">Сложный</button>' +
             '       </td>' +
             '   </tr>' +
             '</table>';
@@ -926,7 +968,7 @@
 
                 modal.close();
             }
-        },{
+        }, {
             elValue: h.getMessage('set_default_params'),
             elClass: 'btn-warning',
             onClick: function (modal) {
@@ -949,12 +991,13 @@
 
         btnList.forEach(function (btn) {
             btn.onclick = function (env) {
-                newLevel = env.srcElement.value;
+
+                newLevel = env.target.value;
 
                 btnList.forEach(function (b) {
                     b.classList.remove('active');
                 });
-                env.srcElement.classList += ' active';
+                env.target.classList += ' active';
 
                 return false;
             }

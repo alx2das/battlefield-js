@@ -67,6 +67,7 @@
 .bf-fields table.field td .box.null { opacity: 1 !important; }
 .bf-fields table.field td .box.auto-null { opacity: .5; }
 .bf-fields table.field td .box.kill { background-position: -28px 0; background-color: #a1b9d6; }
+.bf-fields table.field td .box.death { background-color: #deabab }
 .bf-fields .shot { position: absolute; z-index: 1; width: 28px; height: 28px;
     margin: -2px; background-color: rgba(255, 249, 0, 0.7); border: 2px solid #fff900; }
 .bf-fields .list-let { margin: 25px 15px 0; float: left; }
@@ -121,6 +122,7 @@
     position: fixed; z-index: 19; top: 50%; left: 50%; width: 600px;
     background: #fff; border-radius: 4px; }
 .bf-modal-window .content { padding: 25px 15px 15px 15px; }
+.bf-modal-window .content span { float: right; font-size: 12px; font-weight: 400; padding: 2px 0; color: #7A8BB4; font-style: italic; }
 .bf-modal-window .header, .bf-modal-window .cont, .bf-modal-window .footer {}
 .bf-modal-window .header {
     font-weight: 700; font-size: 16px;
@@ -149,7 +151,7 @@ table.bf-config td .border { border-top: 1px solid rgba(34,36,38,.15) }
 table.bf-config td.options .btn { padding: 4px 14px; border-radius: 20px;
     background: #fff; border: 1px solid rgba(34,36,38,.15); color: rgba(0,0,0,.8); }
 table.bf-config td.options .btn:hover { background-color: #F9FAFB; }
-table.bf-config td.options .btn.active { background-color: #F3F4F5; }
+table.bf-config td.options .btn.active { background-color: #e7ff7f; }
 table.bf-config td.options .btn.rg { float: right; margin: 0; color: #794B02; background-color: #FFFAF3; }
 table.bf-config td.options label { display: inline-block; margin-right: 20px; cursor: pointer }
 table.bf-config td.options label input[type=text] { color: rgba(0,0,0,.8); width: 45px; font-size: 13px; border: 1px solid rgba(34,36,38,.15);
