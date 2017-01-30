@@ -69,7 +69,7 @@
         }
     };
 
-    Battlefield.prototype.setLevel = function (type) {
+    Battlefield.prototype.getLevel = function (type) {
         var level = {
             easy: {
                 fSize: {h: 10, v: 10},
@@ -77,7 +77,7 @@
             },
             middle: {
                 fSize: {h: 15, v: 15},
-                fBarrier: [[5, 2], [4, 3], [3, 4], [2, 5]]
+                fBarrier: [[5, 2], [4, 3], [3, 4], [2, 5], [1, 6]]
             },
             hard: {
                 fSize: {h: 15, v: 20},
@@ -86,18 +86,214 @@
         };
 
         if (typeof level[type] == 'object') {
-            var nLevel = level[type];
-
-            options.fSize = nLevel.fSize;
-            options.fBarrier = nLevel.fBarrier;
-
-            globalLevel = type;
-
-            return this;
+            return level[type];
         }
         else throw new Error(h.getMessage('err_invalid_level'));
+    };
+
+    Battlefield.prototype.setLevel = function (type) {
+        var nLevel = this.getLevel(type);
+
+        options.fSize = nLevel.fSize;
+        options.fBarrier = nLevel.fBarrier;
+
+        globalLevel = type;
 
         return this;
+    };
+
+    Battlefield.prototype.updateConfig = function () {
+        var self = this;
+
+        var contentHtml =
+            '<table class="bf-config">' +
+            '   <tr>' +
+            '       <td class="name top">Уровень сложности:</td>' +
+            '       <td class="options" id="config_level">' +
+            '           <button class="btn ' + (globalLevel == "easy" ? "active" : "") + '" value="easy">Легкий</button>' +
+            '           <button class="btn ' + (globalLevel == "middle" ? "active" : "") + '" value="middle">Средний</button>' +
+            '           <button class="btn ' + (globalLevel == "hard" ? "active" : "") + '" value="hard">Сложный</button>' +
+            '           <button class="btn rg ' + (globalLevel == "user" ? "active" : "") + '" value="user">Настроить</button>' +
+            '       </td>' +
+            '   </tr>' +
+            '   <tr><td colspan="2"><div class="border"></div></td></tr>' +
+
+            '   <tr>' +
+            '       <td class="name">Размер поля:</td>' +
+            '       <td class="options no-label" id="opt-fsize">' +
+            '           <label class="no-act" data-type="h">Горизонтально: <input type="number" id="type-h" min="10" max="25" value="15" disabled></label>' +
+            '           <label class="no-act" data-type="v">Вертикально: <input type="number" id="type-v" min="10" max="25" value="15" disabled></label>' +
+            '       </td>' +
+            '   </tr>' +
+
+            '   <tr>' +
+            '       <td class="name">Корабли на поле</td>' +
+            '       <td class="options no-label" id="opt-fbarrier">' +
+            '           <label class="no-act">6&nbsp;&nbsp;/ <input type="number" id="bar_6" bar="6" value="1" min="0" max="6" disabled /></label>' +
+            '           <label class="no-act">5&nbsp;&nbsp;/ <input type="number" id="bar_5" bar="5" value="2" min="0" max="6" disabled /></label>' +
+            '           <label class="no-act">4&nbsp;&nbsp;/ <input type="number" id="bar_4" bar="4" value="3" min="0" max="6" disabled /></label>' +
+            '           <label class="no-act">3&nbsp;&nbsp;/ <input type="number" id="bar_3" bar="3" value="4" min="0" max="6" disabled /></label>' +
+            '           <label class="no-act">2&nbsp;&nbsp;/ <input type="number" id="bar_2" bar="2" value="5" min="0" max="6" disabled /></label>' +
+            '           <label class="no-act">1&nbsp;&nbsp;/ <input type="number" id="bar_1" bar="1" value="6" min="0" max="6" disabled /></label>' +
+            '       </td>' +
+            '   </tr>' +
+
+            '</table>';
+        contentHtml = '<form>' + contentHtml + '</form>';
+
+        var newLevel = globalLevel;
+
+        h.modalWindow(h.getMessage('options'), contentHtml, [
+            {
+                elValue: h.getMessage('new_game'),
+                onClick: function (modal) {
+                    modal.close();
+
+                    try {
+                        if (newLevel == 'user') {
+                            var nOpt = getUserOptions();
+
+                            options.fSize = nOpt.fSize;
+                            options.fBarrier = nOpt.fBarrier;
+
+                            globalLevel = newLevel;
+                        } else {
+                            if (newLevel.length > 0 && newLevel != globalLevel)
+                                self.setLevel(newLevel);
+                        }
+
+                        self.run();
+                    } catch (err) {
+                        h.showExceptions(err);
+                    }
+                }
+            },
+            {
+                elValue: h.getMessage('set_default_params'),
+                elClass: 'btn-warning',
+                onClick: function (modal) {
+                    self.setLevel('middle');
+                    self.run();
+
+                    modal.close();
+                }
+            },
+            {
+                elValue: h.getMessage('close'),
+                elClass: 'btn-danger',
+                onClick: function (modal) {
+                    modal.close();
+                }
+            }
+        ]);
+
+        var table = document.querySelector('.bf-config');
+        var btnList = document
+            .getElementById('config_level')
+            .querySelectorAll('button');
+
+        activeFormOptions(globalLevel == 'user');
+        echoOptions(options);
+
+        // выбор уровня сложности
+        btnList.forEach(function (btn) {
+            btn.onclick = function (env) {
+
+                newLevel = env.target.value;
+
+                btnList.forEach(function (b) {
+                    b.classList.remove('active');
+                });
+                env.target.classList += ' active';
+
+                if (newLevel == 'user') {
+                    activeFormOptions(true);
+                } else {
+                    activeFormOptions(false);
+                    echoOptions(self.getLevel(newLevel));
+                }
+
+                return false;
+            }
+        });
+
+        // private method....................
+        // ..................................
+
+        // активирует форму для ввода пользовательских настроек
+        function activeFormOptions(active) {
+            // размер игрового поля
+            table.querySelector('#opt-fsize').querySelectorAll('label')
+                .forEach(function (label) {
+                    var input = label.querySelector('input');
+
+                    if (active) {
+                        label.classList = '';
+                        input.disabled = false;
+                    } else {
+                        label.classList = 'no-act';
+                        input.disabled = true;
+                    }
+                });
+
+            // корабли на поле
+            table.querySelector('#opt-fbarrier').querySelectorAll('label')
+                .forEach(function (label) {
+                    var input = label.querySelector('input');
+
+                    if (active) {
+                        label.classList = '';
+                        input.disabled = false;
+                    } else {
+                        label.classList = 'no-act';
+                        input.disabled = true;
+                    }
+                });
+        }
+
+        // вернет настройки пользователя
+        function getUserOptions() {
+            var nOptions = {
+                fSize: {h: 0, v: 0},
+                fBarrier: []
+            };
+
+            // размер игрового поля
+            nOptions.fSize.h = parseInt(table.querySelector('input#type-h').value);
+            nOptions.fSize.v = parseInt(table.querySelector('input#type-v').value);
+
+            // корабли на игровом поле
+            table.querySelector('#opt-fbarrier').querySelectorAll('label')
+                .forEach(function (label) {
+                    var input = label.querySelector('input'),
+                        ship = parseInt(input.getAttribute('bar')),
+                        ctn = parseInt(input.value);
+
+                    if (ctn > 0)
+                        nOptions.fBarrier.push([ship, ctn]);
+                });
+
+            return nOptions;
+        }
+
+        // напечатает переданные настройки
+        function echoOptions(nOptions) {
+            // размер игрового поля
+            table.querySelector('input#type-h').value = nOptions.fSize.h;
+            table.querySelector('input#type-v').value = nOptions.fSize.v;
+
+            // корабли на игровом поле
+            table.querySelector('#opt-fbarrier').querySelectorAll('input').forEach(function (input) {
+                input.value = 0;
+            });
+
+            nOptions.fBarrier.forEach(function (barrier) {
+                var ship = barrier[0],
+                    ctn = barrier[1];
+
+                table.querySelector('#opt-fbarrier').querySelector('input#bar_' + ship).value = ctn;
+            });
+        }
     };
 
     // *****************************************************************************************************************
@@ -594,7 +790,7 @@
             self.battlefield.run();
         };
         document.getElementById('config').onclick = function () {
-            self.updateConfig();
+            self.battlefield.updateConfig();
         };
 
     }
@@ -842,7 +1038,7 @@
             '<span class="time">' + time + '</span>';
 
         var li = document.createElement('li');
-        li.setAttribute('data-fkey',fKey);
+        li.setAttribute('data-fkey', fKey);
         li.setAttribute('data-x', X);
         li.setAttribute('data-y', Y);
         li.innerHTML = html;
@@ -937,73 +1133,6 @@
         }]);
     };
 
-    GameUI.prototype.updateConfig = function () {
-        var self = this;
-
-        var contentHtml =
-            '<table class="bf-config">' +
-            '   <tr>' +
-            '       <td class="name top">Уровень сложности:</td>' +
-            '       <td class="options" id="config_level">' +
-            '           <button class="btn ' + (globalLevel == "easy" ? "active" : "") + '" value="easy">Легкий</button>' +
-            '           <button class="btn ' + (globalLevel == "middle" ? "active" : "") + '" value="middle">Средний</button>' +
-            '           <button class="btn ' + (globalLevel == "hard" ? "active" : "") + '" value="hard">Сложный</button>' +
-            '       </td>' +
-            '   </tr>' +
-            '</table>';
-        contentHtml = '<form>' + contentHtml + '</form>';
-
-        var newLevel = '';
-
-        h.modalWindow(h.getMessage('options'), contentHtml, [{
-            elValue: h.getMessage('new_game'),
-            onClick: function (modal) {
-                try {
-                    if (newLevel.length > 0 && newLevel != globalLevel)
-                        self.battlefield.setLevel(newLevel);
-                    self.battlefield.run();
-                } catch (err) {
-                    h.showExceptions(err);
-                }
-
-                modal.close();
-            }
-        }, {
-            elValue: h.getMessage('set_default_params'),
-            elClass: 'btn-warning',
-            onClick: function (modal) {
-                self.battlefield.setLevel('middle');
-                self.battlefield.run();
-
-                modal.close();
-            }
-        }, {
-            elValue: h.getMessage('close'),
-            elClass: 'btn-danger',
-            onClick: function (modal) {
-                modal.close();
-            }
-        }]);
-
-        var btnList = document
-            .getElementById('config_level')
-            .querySelectorAll('button');
-
-        btnList.forEach(function (btn) {
-            btn.onclick = function (env) {
-
-                newLevel = env.target.value;
-
-                btnList.forEach(function (b) {
-                    b.classList.remove('active');
-                });
-                env.target.classList += ' active';
-
-                return false;
-            }
-        });
-    };
-
     // *****************************************************************************************************************
 
     var h = {
@@ -1046,11 +1175,12 @@
                 game_over: 'Игра закончена',
                 you_lose: 'Ты проиграл',
                 you_winner: 'Ты выиграл',
-                options: 'Настройки игры',
+                options: 'Настройки',
                 update_options: 'Изменить настройки',
                 close: 'Закрыть',
                 update_page: 'Обновить страницу',
                 set_default_params: 'Настройки по умолчанию',
+                save: 'Сохранить',
 
                 log_kill: 'ранил',
                 log_death: 'убил',
@@ -1089,13 +1219,22 @@
                 case ('Error'):
                     title = h.getMessage('info_title_error');
                     content = err.message;
+                    button = [{
+                        elValue: h.getMessage('set_default_params'),
+                        onClick: function (modal) {
+                            modal.close();
+                            var b = new Battlefield(options.htmlSelector, options);
+                            b.setLevel('middle').run();
+                        }
+                    }];
                     break;
                 case ('RangeError'):
                     title = h.getMessage('info_title_range_error');
                     content = err.message;
                     button = [{
                         elValue: h.getMessage('set_default_params'),
-                        onClick: function () {
+                        onClick: function (modal) {
+                            modal.close();
                             var b = new Battlefield(options.htmlSelector, options);
                             b.setLevel('middle').run();
                         }
