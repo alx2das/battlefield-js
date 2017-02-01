@@ -1,0 +1,24 @@
+{
+  "name": "Battlefield Game",
+  "description": "This is classic game Battlefield for browsers, implemented on language JavaScript.",
+  "main": "examples/index.html",
+  "authors": [
+    "Alexandr Builov"
+  ],
+  "license": "ISC",
+  "keywords": [
+    "battlefield",
+    "javascript"
+  ],
+  "homepage": "https://github.com/alx2das/battlefield-js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "devDependencies": {
+    "jasmine-core": "jasmine#^2.5.2"
+  }
+}
