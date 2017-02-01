@@ -1,5 +1,5 @@
 /**
- * Battlefield Game v1.0.0
+ * battlefield-js v1.0.0
  * This is classic game Battlefield for browsers, implemented on language JavaScript.
  * 
  * repository: git+https://github.com/alx2das/battlefield-js.git
@@ -11,7 +11,7 @@
 (function(window){   
    "use strict";   
 
-    var options = {},                                               // опции игры
+    var options = {},                                               // глобальный объект с опциями игры
         // публичные свойства, могут быть изменены через config
         _optionsPublic = {
             printName: true,                                        // печатать имена игроков
@@ -41,9 +41,21 @@
             }
         };
 
-    var _instances = false,                         // Singleton
-        _globalLevel = 'middle';                    // уровень сложности по умолчанию
+    var _instances = false,                                         // Singleton
+        _globalLevel = 'middle';                                    // уровень сложности по умолчанию
 
+    /**
+     * Инициализирует игру, устанавливает параметры по умолчанию
+     *
+     * Требуется:
+     *      options = {}        - глобальный объект с опциями игры
+     *      h = {}              - глобальный обьект функций помошников
+     *
+     * @param htmlSelector      - строковый селектор элемента на странице
+     * @param config            - объект настроек по умолчанию, доступные параметры: _optionsPublic
+     * @returns {Battlefield}
+     * @constructor
+     */
     function Battlefield(htmlSelector, config) {
         // Singleton
         if (_instances instanceof Battlefield)
@@ -63,6 +75,9 @@
         this.setLevel(_globalLevel);
     }
 
+    /**
+     * Запуск игры
+     */
     Battlefield.prototype.run = function () {
         try {
             var F = new Field();
@@ -74,6 +89,12 @@
         }
     };
 
+    /**
+     * Вернет настройки для указанного уровеня сложности
+     *
+     * @param type
+     * @returns {*}
+     */
     Battlefield.prototype.getLevel = function (type) {
         var level = {
             easy: {
@@ -96,6 +117,12 @@
         else throw new Error(h.getMessage('err_invalid_level'));
     };
 
+    /**
+     * Установит уровень сложности
+     *
+     * @param type
+     * @returns {Battlefield}
+     */
     Battlefield.prototype.setLevel = function (type) {
         var nLevel = this.getLevel(type);
 
@@ -107,6 +134,9 @@
         return this;
     };
 
+    /**
+     * Выведет модальное окно для изменения настроек игры
+     */
     Battlefield.prototype.updateConfig = function () {
         var self = this;
 
@@ -148,8 +178,7 @@
 
         var newLevel = _globalLevel;
 
-        h.modalWindow(h.getMessage('options'), contentHtml, [
-            {
+        h.modalWindow(h.getMessage('options'), contentHtml, [{
                 elValue: h.getMessage('new_game'),
                 onClick: function (modal) {
                     modal.close();
@@ -172,18 +201,16 @@
                         h.showExceptions(err);
                     }
                 }
-            },
-            {
+            },{
                 elValue: h.getMessage('set_default_params'),
                 elClass: 'btn-warning',
                 onClick: function (modal) {
+                    modal.close();
+
                     self.setLevel('middle');
                     self.run();
-
-                    modal.close();
                 }
-            },
-            {
+            },{
                 elValue: h.getMessage('close'),
                 elClass: 'btn-danger',
                 onClick: function (modal) {
@@ -293,14 +320,23 @@
             });
 
             nOptions.fBarrier.forEach(function (barrier) {
-                var ship = barrier[0],
-                    ctn = barrier[1];
+                var ship = barrier[0],                              // кол-во палуб корабля
+                    ctn = barrier[1];                               // кол-во кораблей
 
                 table.querySelector('#opt-fbarrier').querySelector('input#bar_' + ship).value = ctn;
             });
         }
     };
 
+    /**
+     * Класс для создания игрового поля
+     *
+     * Требуется:
+     *      options = {}        - глобальный объект с опциями игры
+     *      h = {}              - глобальный обьект функций помошников
+     *
+     * @constructor
+     */
     function Field() {
         if (options.fSize.h < 10 || options.fSize.h > 25 || options.fSize.v < 10 || options.fSize.v > 25)
             throw new RangeError(h.getMessage('err_size_field'));
@@ -326,6 +362,11 @@
         }
     }
 
+    /**
+     * Устанавливает корабли на игровое поле
+     *
+     * @returns {Array}
+     */
     Field.prototype.setBarrier = function () {
         var self = this,
             maxIteration = this.fName.length * 100;
@@ -364,7 +405,7 @@
             for (var i = 0; i < cell; i++) {                        // перебор палуб
                 var pX = x, pY = y;
 
-                if (posHorizontal) pX = x + i;
+                if (posHorizontal) pX = x + i;                      // направление корабля
                 else pY = y + i;
 
                 if (checkPoint(pX, pY, field))                      // если точка свободна, сохраняем ее
@@ -410,7 +451,18 @@
         }
     };
 
-    function Battle(fields, battlefield, htmlSelector) {
+    /**
+     * Запускает алгоритмы обстрела игроками поля боя
+     *
+     * Требуется:
+     *      options = {}        - глобальный объект с опциями игры
+     *      h = {}              - глобальный обьект функций помошников
+     *
+     * @param fields            - обьект массивов игровых поле
+     * @param battlefield       - экземпляр Battlefield
+     * @constructor
+     */
+    function Battle(fields, battlefield) {
         if (!(battlefield instanceof Battlefield))
             throw new Error('Invalid Battlefield object in the construct Battle');
 
@@ -459,8 +511,13 @@
         }
     }
 
-    Battle.prototype = Object.create(GameUI.prototype);
+    Battle.prototype = Object.create(GameUI.prototype);             // наследование
 
+    /**
+     * Осуществляет переход хода
+     *
+     * @param fKey              - строковый ключ игрока
+     */
     Battle.prototype.game = function (fKey) {
         try {
             this.showProgress(fKey);
@@ -481,6 +538,10 @@
         }
     };
 
+    /**
+     * Ход игрока,
+     * ожидает событие клика по игровому полю
+     */
     Battle.prototype.shotUser = function () {
         var self = this;
 
@@ -499,6 +560,13 @@
         });
     };
 
+    /**
+     * Ход компьютера,
+     * в зависимости от попадания по кораблю противника будет
+     * добивать корабль или стрелять по случайной клетке
+     *
+     * @param fKey              - строковый ключ игрока
+     */
     Battle.prototype.shotAI = function (fKey) {
         var self = this,
             field = this.fields[fKey],
@@ -580,6 +648,12 @@
         }
     };
 
+    /**
+     * Осуществляет выстрел по игровому полю
+     *
+     * @param point             - массив 2 элементов с точкой на игровом поле
+     * @param fKey              - строковый ключ игрока
+     */
     Battle.prototype.shot = function (point, fKey) {
         var self = this,
             ctnCellShip = 0,
@@ -662,7 +736,6 @@
                 lsCellShip = [];
 
             if (_checkPointToKill(point)) {
-                // ctnCellShip = lsCellShip.length + 1;
                 lsCellShip.push(point);
                 ctnCellShip = lsCellShip;
 
@@ -727,9 +800,10 @@
      * Класс управления пользовательским интерфейсом
      *
      * Требуется:
-     *      options = {}    - глобальный объект с опциями игры
-     *      h = {}          - глобальный обьект функций помошников
-     * @param htmlSelector  - document.querySelector
+     *      options = {}        - глобальный объект с опциями игры
+     *      h = {}              - глобальный обьект функций помошников
+     *
+     * @param htmlSelector      - document.querySelector
      * @constructor
      */
     function GameUI(fields, battlefield) {
@@ -805,6 +879,12 @@
 
     }
 
+    /**
+     * Вернет HTML разметку игрового поля
+     *
+     * @param player            - строковый ключ игрока
+     * @returns {string}
+     */
     GameUI.prototype.getFieldHTML = function (player) {
         var fields = this.fields,
             html = '';
@@ -877,6 +957,13 @@
         }
     };
 
+    /**
+     * Оповещает пользователя о переходе хода,
+     * блокирует игровое поле ожидающего
+     *
+     * @param fKey              строковый ключ игрока
+     * @returns {*}
+     */
     GameUI.prototype.showProgress = function (fKey) {
         // в конце игры, блокируем игровые поля и убираем метку активности с имени
         if (!fKey) {
@@ -901,17 +988,32 @@
         if (!options.printName)
             return null;
 
-        // ставим метку кому перешел ход
+        // ставим метку к кому перешел ход
         this.nameHtml.querySelectorAll('.name').forEach(function (span) {
             span.classList.remove('act');
         });
         this.nameHtml.querySelector('.name#' + fKey).classList.add('act');
     };
 
+    /**
+     * Вешает событие ожидания клика по игровому полю
+     *
+     * @param fKey              - строковый ключ игрока
+     * @param callback          - фукция
+     */
     GameUI.prototype.clickToField = function (fKey, callback) {
         this.fieldHtml.querySelector('table.field#' + fKey).onclick = callback;
     };
 
+    /**
+     * Печатает маркер на игровом поле
+     *
+     * @param point             - точка в формате [x, y]
+     * @param fKey              - строковый ключ игрока
+     * @param tPoint            - тип точки
+     * @param auto              - автоматическая точка
+     * @returns {null}
+     */
     GameUI.prototype.setMarker = function (point, fKey, tPoint, auto) {
         var X = point[0],
             Y = point[1],
@@ -919,13 +1021,13 @@
         auto = auto || false;
 
         switch (tPoint) {
-            case (options.tPoint.NUL):                          // мимо
+            case (options.tPoint.NUL):                              // мимо
                 elClass = auto ? 'auto-null' : 'null';
                 break;
-            case (options.tPoint.KIL):                          // ранил
+            case (options.tPoint.KIL):                              // ранил
                 elClass = 'kill';
                 break;
-            case (options.tPoint.KIL + '_death'):               // убил
+            case (options.tPoint.KIL + '_death'):                   // убил
                 elClass = 'kill';
                 break;
             default:
@@ -947,6 +1049,14 @@
         }
     };
 
+    /**
+     * Ставит точки подсказки по углам от подбитого корабля
+     *
+     * @param point             - точка в формате [x, y]
+     * @param fKey              - строковый ключ игрока
+     * @param callback          - фукция запускается после установки точки
+     * @returns {boolean}
+     */
     GameUI.prototype.setHelpMarker = function (point, fKey, callback) {
         if (!options.printHelp)
             return false;
@@ -966,6 +1076,12 @@
         }
     };
 
+    /**
+     * Информирует пользователя об оставшихся кораблях на игровом поле
+     *
+     * @param ctnCell           - массив точек убитого корабля
+     * @param fKey              - строковый ключ игрока
+     */
     GameUI.prototype.shipInfoMap = function (ctnCell, fKey) {
         var count = ctnCell.length;
 
@@ -985,25 +1101,34 @@
 
         h.animateOpacity(shot, 3000);
 
+        // если кораблей такова типа больше нет
         if (dCtn == 0) {
-            var lsBox = letBox.querySelectorAll('div');
-            lsBox.forEach(function (box) {
-                box.className += ' kill';
+            letBox.querySelectorAll('div').forEach(function (box) {
+                box.className += ' kill';                           // ставим метку убит
             });
         }
 
+        // если корабль убит, делаем его крассным
         var table = this.fieldHtml.querySelector('.field#' + fKey);
         ctnCell.forEach(function (ship) {
             var X = ship[0],
                 Y = ship[1];
 
-            table
-                .rows[X].cells[Y]
+            table.rows[X].cells[Y]
                 .querySelector('.box')
                 .className += ' death';
         });
     };
 
+    /**
+     * Ведет журнал боя,
+     * так же запускает фильтр журнала и подсветку точек на игром поле при наведении на запись
+     *
+     * @param point             - точка выстрела в формате [x, y]
+     * @param fKey              - строковый ключ игрока
+     * @param tPoint            - тип попадания
+     * @returns {boolean}
+     */
     GameUI.prototype.printLog = function (point, fKey, tPoint) {
         if (!options.printLog)
             return false;
@@ -1015,9 +1140,6 @@
 
         var tPoint_class = '',
             tPoint_name = '';
-
-        var nAttrID = '',
-            dAttrID = '';
 
         var player = fKey == options.player.kUser
                 ? h.getPlayerName(options.player.kBrain) : h.getPlayerName(options.player.kUser),
@@ -1062,7 +1184,7 @@
 
         this.logHtml.querySelector('ul').insertBefore(li, this.logHtml.querySelector('ul').firstChild);
 
-        // при наведении на логи, подсветка точки игрового поля
+        // при наведении на лог, подсветка точки игрового поля
         li.onmouseover = function (event) {
             if (event.target.nodeName != 'LI')
                 return false;
@@ -1082,6 +1204,7 @@
             };
         };
 
+        // фильт журнала
         if (this.logFilter == null) {
             this.logFilter = this.logHtml.querySelector('.bf-filter');
             this.logFilter.classList = 'bf-filter';
@@ -1108,6 +1231,11 @@
         }
     };
 
+    /**
+     * Показывает корабли на игровом поле
+     *
+     * @param fKey              - строковый ключ игрока
+     */
     GameUI.prototype.showShip = function (fKey) {
         var field = this.fields[fKey],
             table = this.fieldHtml.querySelector('table#' + fKey);
@@ -1123,6 +1251,12 @@
         }
     };
 
+    /**
+     * Оповещает пользователя об окончании игры,
+     * выводит модальное окно
+     *
+     * @param winner            - строковый ключ игрока, победителя
+     */
     GameUI.prototype.gameOver = function (winner) {
         var self = this,
             kWinner = options.player.kUser == winner ? 'kUser' : 'kBrain';
@@ -1130,7 +1264,7 @@
             elClass = '',
             message = '';
 
-        // прибавляем победу...
+        // счетчик побед...
         options.winner[kWinner]++;
 
         if (options.player.kUser == winner) {
@@ -1152,6 +1286,7 @@
             '   <h3>' + message + '</h3>' +
             '</div>';
 
+        // выводит модальное окно с опциями
         h.modalWindow(h.getMessage('game_over'), contentHtml, [{
             elValue: h.getMessage('new_game'),
             onClick: function (modal) {
@@ -1176,28 +1311,54 @@
         }]);
     };
 
+    // глобальный класс модуля
     var h = {
+        /**
+         * имена играков по умолчанию
+         */
         playerName: {
             def: {
-                kUser: 'Игрок',
-                kBrain: 'Компьютер'
+                kUser: 'Игрок', kBrain: 'Компьютер'
             }
         },
 
+        /**
+         * Вернет случайное число в интервале
+         *
+         * @param min           - по умолчанию: 0
+         * @param max           - по умолчанию: 100
+         * @returns {Number}
+         */
         rand: function (min, max) {
             min = min || 0;
             max = max || 100;
 
             return parseInt(Math.random() * (max - min + 1) + min);
         },
+
+        /**
+         * Вернет буквку англ.алфавита по номеру.
+         * Если номер больше кол-ва букв, к результату будет прибавлена цифра
+         *
+         * @param key
+         * @param operand
+         * @returns {*}
+         */
         getLetter: function (key, operand) {
             var operand = operand || '',
                 alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             if (key > alphabet.length)
-                return h.getLetter(key - alphabet.length, (operand == '' ? 1 : operand + 1));
+                return this.getLetter(key - alphabet.length, (operand == '' ? 1 : operand + 1));
 
             return alphabet[key] + operand;
         },
+
+        /**
+         * Перемешает массив случайным образом
+         *
+         * @param arr           - массив
+         * @returns {*}
+         */
         shuffle: function (arr) {
             var inx, buffer;
             for (var i = 0; i < arr.length - 1; i++) {
@@ -1209,6 +1370,13 @@
             }
             return arr;
         },
+
+        /**
+         * Интернализация
+         *
+         * @param type
+         * @returns {*}
+         */
         getMessage: function (type) {
             var mess = {
                 start_game: 'Начать игру',
@@ -1249,10 +1417,23 @@
 
             return typeof mess[type] == 'string' && mess[type].length > 0 ? mess[type] : type;
         },
+
+        /**
+         * Вернет строковое имя игрока
+         *
+         * @param fKey          - строковый ключ игрока
+         * @returns {*}
+         */
         getPlayerName: function (fKey) {
             var key = fKey == options.player.kUser ? 'kUser' : 'kBrain';
             return this.playerName.def[key];
         },
+
+        /**
+         * Ловит сообщение об ошибке
+         *
+         * @param err
+         */
         showExceptions: function (err) {
             var title = '',
                 content = '',
@@ -1275,7 +1456,15 @@
                     title = h.getMessage('info_title_range_error');
                     content = err.message;
                     button = [{
+                        elValue: h.getMessage('update_options'),
+                        onClick: function (modal) {
+                            modal.close();
+                            var b = new Battlefield(options.htmlSelector, options);
+                            b.updateConfig();
+                        }
+                    },{
                         elValue: h.getMessage('set_default_params'),
+                        elClass: 'btn-warning',
                         onClick: function (modal) {
                             modal.close();
                             var b = new Battlefield(options.htmlSelector, options);
@@ -1290,6 +1479,26 @@
 
             this.modalWindow(title, content, button);
         },
+
+        /**
+         * Выводит модальное окно, автоматически установит по середине страницы
+         *
+         * ~~~~
+         * h.modalWindow(
+         *  'title modal window',
+         *  '<b>Content</b> modal',
+         *  [{
+         *      elClass: 'btn-success',                 // css класс будет добавлен к кнопке
+         *      elValue: 'Button close',                // значение кнопки
+         *      onClick: function (modal, event) {}     // событие клика по кнопке
+         *  }]
+         * )
+         * ~~~~
+         *
+         * @param title         - заголовок
+         * @param contentHTML   - html содержимое
+         * @param button        - массив обьектов кнопок модального окна
+         */
         modalWindow: function (title, contentHTML, button) {
             var modal = {
                 font: false,
@@ -1370,17 +1579,22 @@
                 };
             }
         },
+
+        /**
+         * Запускает анимацию плавного исчезновения со страницы
+         *
+         * @param element       - document элемент
+         * @param time          - кол-во сек.через которое элемент исчезнет со страницы
+         */
         animateOpacity: function (element, time) {
             element.style.opacity = 1;
-
             var t = setInterval(function () {
                 element.style.opacity = element.style.opacity - (100 / (time / 0.1));
                 if (element.style.opacity <= 0) {
                     clearInterval(t);
                     try {
                         element.parentNode.removeChild(element);
-                    } catch (e) {
-                    }
+                    } catch (e) { }
                 }
             }, 1);
         }

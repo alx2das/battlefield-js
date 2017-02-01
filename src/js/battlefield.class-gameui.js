@@ -2,9 +2,10 @@
      * Класс управления пользовательским интерфейсом
      *
      * Требуется:
-     *      options = {}    - глобальный объект с опциями игры
-     *      h = {}          - глобальный обьект функций помошников
-     * @param htmlSelector  - document.querySelector
+     *      options = {}        - глобальный объект с опциями игры
+     *      h = {}              - глобальный обьект функций помошников
+     *
+     * @param htmlSelector      - document.querySelector
      * @constructor
      */
     function GameUI(fields, battlefield) {
@@ -80,6 +81,12 @@
 
     }
 
+    /**
+     * Вернет HTML разметку игрового поля
+     *
+     * @param player            - строковый ключ игрока
+     * @returns {string}
+     */
     GameUI.prototype.getFieldHTML = function (player) {
         var fields = this.fields,
             html = '';
@@ -152,6 +159,13 @@
         }
     };
 
+    /**
+     * Оповещает пользователя о переходе хода,
+     * блокирует игровое поле ожидающего
+     *
+     * @param fKey              строковый ключ игрока
+     * @returns {*}
+     */
     GameUI.prototype.showProgress = function (fKey) {
         // в конце игры, блокируем игровые поля и убираем метку активности с имени
         if (!fKey) {
@@ -176,17 +190,32 @@
         if (!options.printName)
             return null;
 
-        // ставим метку кому перешел ход
+        // ставим метку к кому перешел ход
         this.nameHtml.querySelectorAll('.name').forEach(function (span) {
             span.classList.remove('act');
         });
         this.nameHtml.querySelector('.name#' + fKey).classList.add('act');
     };
 
+    /**
+     * Вешает событие ожидания клика по игровому полю
+     *
+     * @param fKey              - строковый ключ игрока
+     * @param callback          - фукция
+     */
     GameUI.prototype.clickToField = function (fKey, callback) {
         this.fieldHtml.querySelector('table.field#' + fKey).onclick = callback;
     };
 
+    /**
+     * Печатает маркер на игровом поле
+     *
+     * @param point             - точка в формате [x, y]
+     * @param fKey              - строковый ключ игрока
+     * @param tPoint            - тип точки
+     * @param auto              - автоматическая точка
+     * @returns {null}
+     */
     GameUI.prototype.setMarker = function (point, fKey, tPoint, auto) {
         var X = point[0],
             Y = point[1],
@@ -194,13 +223,13 @@
         auto = auto || false;
 
         switch (tPoint) {
-            case (options.tPoint.NUL):                          // мимо
+            case (options.tPoint.NUL):                              // мимо
                 elClass = auto ? 'auto-null' : 'null';
                 break;
-            case (options.tPoint.KIL):                          // ранил
+            case (options.tPoint.KIL):                              // ранил
                 elClass = 'kill';
                 break;
-            case (options.tPoint.KIL + '_death'):               // убил
+            case (options.tPoint.KIL + '_death'):                   // убил
                 elClass = 'kill';
                 break;
             default:
@@ -222,6 +251,14 @@
         }
     };
 
+    /**
+     * Ставит точки подсказки по углам от подбитого корабля
+     *
+     * @param point             - точка в формате [x, y]
+     * @param fKey              - строковый ключ игрока
+     * @param callback          - фукция запускается после установки точки
+     * @returns {boolean}
+     */
     GameUI.prototype.setHelpMarker = function (point, fKey, callback) {
         if (!options.printHelp)
             return false;
@@ -241,6 +278,12 @@
         }
     };
 
+    /**
+     * Информирует пользователя об оставшихся кораблях на игровом поле
+     *
+     * @param ctnCell           - массив точек убитого корабля
+     * @param fKey              - строковый ключ игрока
+     */
     GameUI.prototype.shipInfoMap = function (ctnCell, fKey) {
         var count = ctnCell.length;
 
@@ -260,25 +303,34 @@
 
         h.animateOpacity(shot, 3000);
 
+        // если кораблей такова типа больше нет
         if (dCtn == 0) {
-            var lsBox = letBox.querySelectorAll('div');
-            lsBox.forEach(function (box) {
-                box.className += ' kill';
+            letBox.querySelectorAll('div').forEach(function (box) {
+                box.className += ' kill';                           // ставим метку убит
             });
         }
 
+        // если корабль убит, делаем его крассным
         var table = this.fieldHtml.querySelector('.field#' + fKey);
         ctnCell.forEach(function (ship) {
             var X = ship[0],
                 Y = ship[1];
 
-            table
-                .rows[X].cells[Y]
+            table.rows[X].cells[Y]
                 .querySelector('.box')
                 .className += ' death';
         });
     };
 
+    /**
+     * Ведет журнал боя,
+     * так же запускает фильтр журнала и подсветку точек на игром поле при наведении на запись
+     *
+     * @param point             - точка выстрела в формате [x, y]
+     * @param fKey              - строковый ключ игрока
+     * @param tPoint            - тип попадания
+     * @returns {boolean}
+     */
     GameUI.prototype.printLog = function (point, fKey, tPoint) {
         if (!options.printLog)
             return false;
@@ -290,9 +342,6 @@
 
         var tPoint_class = '',
             tPoint_name = '';
-
-        var nAttrID = '',
-            dAttrID = '';
 
         var player = fKey == options.player.kUser
                 ? h.getPlayerName(options.player.kBrain) : h.getPlayerName(options.player.kUser),
@@ -337,7 +386,7 @@
 
         this.logHtml.querySelector('ul').insertBefore(li, this.logHtml.querySelector('ul').firstChild);
 
-        // при наведении на логи, подсветка точки игрового поля
+        // при наведении на лог, подсветка точки игрового поля
         li.onmouseover = function (event) {
             if (event.target.nodeName != 'LI')
                 return false;
@@ -357,6 +406,7 @@
             };
         };
 
+        // фильт журнала
         if (this.logFilter == null) {
             this.logFilter = this.logHtml.querySelector('.bf-filter');
             this.logFilter.classList = 'bf-filter';
@@ -383,6 +433,11 @@
         }
     };
 
+    /**
+     * Показывает корабли на игровом поле
+     *
+     * @param fKey              - строковый ключ игрока
+     */
     GameUI.prototype.showShip = function (fKey) {
         var field = this.fields[fKey],
             table = this.fieldHtml.querySelector('table#' + fKey);
@@ -398,6 +453,12 @@
         }
     };
 
+    /**
+     * Оповещает пользователя об окончании игры,
+     * выводит модальное окно
+     *
+     * @param winner            - строковый ключ игрока, победителя
+     */
     GameUI.prototype.gameOver = function (winner) {
         var self = this,
             kWinner = options.player.kUser == winner ? 'kUser' : 'kBrain';
@@ -405,7 +466,7 @@
             elClass = '',
             message = '';
 
-        // прибавляем победу...
+        // счетчик побед...
         options.winner[kWinner]++;
 
         if (options.player.kUser == winner) {
@@ -427,6 +488,7 @@
             '   <h3>' + message + '</h3>' +
             '</div>';
 
+        // выводит модальное окно с опциями
         h.modalWindow(h.getMessage('game_over'), contentHtml, [{
             elValue: h.getMessage('new_game'),
             onClick: function (modal) {

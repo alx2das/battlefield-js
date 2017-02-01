@@ -1,25 +1,51 @@
+    // глобальный класс модуля
     var h = {
+        /**
+         * имена играков по умолчанию
+         */
         playerName: {
             def: {
-                kUser: 'Игрок',
-                kBrain: 'Компьютер'
+                kUser: 'Игрок', kBrain: 'Компьютер'
             }
         },
 
+        /**
+         * Вернет случайное число в интервале
+         *
+         * @param min           - по умолчанию: 0
+         * @param max           - по умолчанию: 100
+         * @returns {Number}
+         */
         rand: function (min, max) {
             min = min || 0;
             max = max || 100;
 
             return parseInt(Math.random() * (max - min + 1) + min);
         },
+
+        /**
+         * Вернет буквку англ.алфавита по номеру.
+         * Если номер больше кол-ва букв, к результату будет прибавлена цифра
+         *
+         * @param key
+         * @param operand
+         * @returns {*}
+         */
         getLetter: function (key, operand) {
             var operand = operand || '',
                 alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             if (key > alphabet.length)
-                return h.getLetter(key - alphabet.length, (operand == '' ? 1 : operand + 1));
+                return this.getLetter(key - alphabet.length, (operand == '' ? 1 : operand + 1));
 
             return alphabet[key] + operand;
         },
+
+        /**
+         * Перемешает массив случайным образом
+         *
+         * @param arr           - массив
+         * @returns {*}
+         */
         shuffle: function (arr) {
             var inx, buffer;
             for (var i = 0; i < arr.length - 1; i++) {
@@ -31,6 +57,13 @@
             }
             return arr;
         },
+
+        /**
+         * Интернализация
+         *
+         * @param type
+         * @returns {*}
+         */
         getMessage: function (type) {
             var mess = {
                 start_game: 'Начать игру',
@@ -71,10 +104,23 @@
 
             return typeof mess[type] == 'string' && mess[type].length > 0 ? mess[type] : type;
         },
+
+        /**
+         * Вернет строковое имя игрока
+         *
+         * @param fKey          - строковый ключ игрока
+         * @returns {*}
+         */
         getPlayerName: function (fKey) {
             var key = fKey == options.player.kUser ? 'kUser' : 'kBrain';
             return this.playerName.def[key];
         },
+
+        /**
+         * Ловит сообщение об ошибке
+         *
+         * @param err
+         */
         showExceptions: function (err) {
             var title = '',
                 content = '',
@@ -97,7 +143,15 @@
                     title = h.getMessage('info_title_range_error');
                     content = err.message;
                     button = [{
+                        elValue: h.getMessage('update_options'),
+                        onClick: function (modal) {
+                            modal.close();
+                            var b = new Battlefield(options.htmlSelector, options);
+                            b.updateConfig();
+                        }
+                    },{
                         elValue: h.getMessage('set_default_params'),
+                        elClass: 'btn-warning',
                         onClick: function (modal) {
                             modal.close();
                             var b = new Battlefield(options.htmlSelector, options);
@@ -112,6 +166,26 @@
 
             this.modalWindow(title, content, button);
         },
+
+        /**
+         * Выводит модальное окно, автоматически установит по середине страницы
+         *
+         * ~~~~
+         * h.modalWindow(
+         *  'title modal window',
+         *  '<b>Content</b> modal',
+         *  [{
+         *      elClass: 'btn-success',                 // css класс будет добавлен к кнопке
+         *      elValue: 'Button close',                // значение кнопки
+         *      onClick: function (modal, event) {}     // событие клика по кнопке
+         *  }]
+         * )
+         * ~~~~
+         *
+         * @param title         - заголовок
+         * @param contentHTML   - html содержимое
+         * @param button        - массив обьектов кнопок модального окна
+         */
         modalWindow: function (title, contentHTML, button) {
             var modal = {
                 font: false,
@@ -192,17 +266,22 @@
                 };
             }
         },
+
+        /**
+         * Запускает анимацию плавного исчезновения со страницы
+         *
+         * @param element       - document элемент
+         * @param time          - кол-во сек.через которое элемент исчезнет со страницы
+         */
         animateOpacity: function (element, time) {
             element.style.opacity = 1;
-
             var t = setInterval(function () {
                 element.style.opacity = element.style.opacity - (100 / (time / 0.1));
                 if (element.style.opacity <= 0) {
                     clearInterval(t);
                     try {
                         element.parentNode.removeChild(element);
-                    } catch (e) {
-                    }
+                    } catch (e) { }
                 }
             }, 1);
         }

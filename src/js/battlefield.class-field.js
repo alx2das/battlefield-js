@@ -1,3 +1,12 @@
+    /**
+     * Класс для создания игрового поля
+     *
+     * Требуется:
+     *      options = {}        - глобальный объект с опциями игры
+     *      h = {}              - глобальный обьект функций помошников
+     *
+     * @constructor
+     */
     function Field() {
         if (options.fSize.h < 10 || options.fSize.h > 25 || options.fSize.v < 10 || options.fSize.v > 25)
             throw new RangeError(h.getMessage('err_size_field'));
@@ -23,6 +32,11 @@
         }
     }
 
+    /**
+     * Устанавливает корабли на игровое поле
+     *
+     * @returns {Array}
+     */
     Field.prototype.setBarrier = function () {
         var self = this,
             maxIteration = this.fName.length * 100;
@@ -61,7 +75,7 @@
             for (var i = 0; i < cell; i++) {                        // перебор палуб
                 var pX = x, pY = y;
 
-                if (posHorizontal) pX = x + i;
+                if (posHorizontal) pX = x + i;                      // направление корабля
                 else pY = y + i;
 
                 if (checkPoint(pX, pY, field))                      // если точка свободна, сохраняем ее

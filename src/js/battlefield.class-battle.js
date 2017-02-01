@@ -1,4 +1,15 @@
-    function Battle(fields, battlefield, htmlSelector) {
+    /**
+     * Запускает алгоритмы обстрела игроками поля боя
+     *
+     * Требуется:
+     *      options = {}        - глобальный объект с опциями игры
+     *      h = {}              - глобальный обьект функций помошников
+     *
+     * @param fields            - обьект массивов игровых поле
+     * @param battlefield       - экземпляр Battlefield
+     * @constructor
+     */
+    function Battle(fields, battlefield) {
         if (!(battlefield instanceof Battlefield))
             throw new Error('Invalid Battlefield object in the construct Battle');
 
@@ -47,8 +58,13 @@
         }
     }
 
-    Battle.prototype = Object.create(GameUI.prototype);
+    Battle.prototype = Object.create(GameUI.prototype);             // наследование
 
+    /**
+     * Осуществляет переход хода
+     *
+     * @param fKey              - строковый ключ игрока
+     */
     Battle.prototype.game = function (fKey) {
         try {
             this.showProgress(fKey);
@@ -69,6 +85,10 @@
         }
     };
 
+    /**
+     * Ход игрока,
+     * ожидает событие клика по игровому полю
+     */
     Battle.prototype.shotUser = function () {
         var self = this;
 
@@ -87,6 +107,13 @@
         });
     };
 
+    /**
+     * Ход компьютера,
+     * в зависимости от попадания по кораблю противника будет
+     * добивать корабль или стрелять по случайной клетке
+     *
+     * @param fKey              - строковый ключ игрока
+     */
     Battle.prototype.shotAI = function (fKey) {
         var self = this,
             field = this.fields[fKey],
@@ -168,6 +195,12 @@
         }
     };
 
+    /**
+     * Осуществляет выстрел по игровому полю
+     *
+     * @param point             - массив 2 элементов с точкой на игровом поле
+     * @param fKey              - строковый ключ игрока
+     */
     Battle.prototype.shot = function (point, fKey) {
         var self = this,
             ctnCellShip = 0,
@@ -250,7 +283,6 @@
                 lsCellShip = [];
 
             if (_checkPointToKill(point)) {
-                // ctnCellShip = lsCellShip.length + 1;
                 lsCellShip.push(point);
                 ctnCellShip = lsCellShip;
 

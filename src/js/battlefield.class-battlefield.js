@@ -1,6 +1,18 @@
-    var _instances = false,                         // Singleton
-        _globalLevel = 'middle';                    // уровень сложности по умолчанию
+    var _instances = false,                                         // Singleton
+        _globalLevel = 'middle';                                    // уровень сложности по умолчанию
 
+    /**
+     * Инициализирует игру, устанавливает параметры по умолчанию
+     *
+     * Требуется:
+     *      options = {}        - глобальный объект с опциями игры
+     *      h = {}              - глобальный обьект функций помошников
+     *
+     * @param htmlSelector      - строковый селектор элемента на странице
+     * @param config            - объект настроек по умолчанию, доступные параметры: _optionsPublic
+     * @returns {Battlefield}
+     * @constructor
+     */
     function Battlefield(htmlSelector, config) {
         // Singleton
         if (_instances instanceof Battlefield)
@@ -20,6 +32,9 @@
         this.setLevel(_globalLevel);
     }
 
+    /**
+     * Запуск игры
+     */
     Battlefield.prototype.run = function () {
         try {
             var F = new Field();
@@ -31,6 +46,12 @@
         }
     };
 
+    /**
+     * Вернет настройки для указанного уровеня сложности
+     *
+     * @param type
+     * @returns {*}
+     */
     Battlefield.prototype.getLevel = function (type) {
         var level = {
             easy: {
@@ -53,6 +74,12 @@
         else throw new Error(h.getMessage('err_invalid_level'));
     };
 
+    /**
+     * Установит уровень сложности
+     *
+     * @param type
+     * @returns {Battlefield}
+     */
     Battlefield.prototype.setLevel = function (type) {
         var nLevel = this.getLevel(type);
 
@@ -64,6 +91,9 @@
         return this;
     };
 
+    /**
+     * Выведет модальное окно для изменения настроек игры
+     */
     Battlefield.prototype.updateConfig = function () {
         var self = this;
 
@@ -105,8 +135,7 @@
 
         var newLevel = _globalLevel;
 
-        h.modalWindow(h.getMessage('options'), contentHtml, [
-            {
+        h.modalWindow(h.getMessage('options'), contentHtml, [{
                 elValue: h.getMessage('new_game'),
                 onClick: function (modal) {
                     modal.close();
@@ -129,18 +158,16 @@
                         h.showExceptions(err);
                     }
                 }
-            },
-            {
+            },{
                 elValue: h.getMessage('set_default_params'),
                 elClass: 'btn-warning',
                 onClick: function (modal) {
+                    modal.close();
+
                     self.setLevel('middle');
                     self.run();
-
-                    modal.close();
                 }
-            },
-            {
+            },{
                 elValue: h.getMessage('close'),
                 elClass: 'btn-danger',
                 onClick: function (modal) {
@@ -250,8 +277,8 @@
             });
 
             nOptions.fBarrier.forEach(function (barrier) {
-                var ship = barrier[0],
-                    ctn = barrier[1];
+                var ship = barrier[0],                              // кол-во палуб корабля
+                    ctn = barrier[1];                               // кол-во кораблей
 
                 table.querySelector('#opt-fbarrier').querySelector('input#bar_' + ship).value = ctn;
             });
