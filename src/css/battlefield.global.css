@@ -1,0 +1,93 @@
+* {
+    margin: 0;
+    padding: 0
+}
+
+.bf-player-name, .bf-fields, .bf-logger, .bf-modal-window, .btn {
+    font-family: Arial, sans-serif;
+    color: #7a8b9f;
+    font-size: 13px;
+}
+
+.bf-player-name, .bf-fields, .bf-logger {
+    padding: 25px 0;
+}
+
+.bf-player-name:after, .bf-fields:after, .bf-logger:after {
+    content: " ";
+    clear: both;
+    display: block;
+}
+
+.btn {
+    color: #fff;
+    float: left;
+    margin-right: 10px;
+    outline: 0;
+    margin-bottom: 0;
+    font-weight: 400;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    padding: 7px 14px;
+    font-size: 13px;
+    line-height: 1.2;
+    border-radius: 3px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.btn {
+    background-color: #5cb85c;
+    color: #fff;
+}
+
+.btn:active {
+    background-color: #449d44;
+}
+
+.btn:hover {
+    background-color: #449d44;
+}
+
+.btn.btn-warning {
+    background-color: #f0ad4e;
+}
+
+.btn.btn-warning:active {
+    background-color: #ec971f;
+}
+
+.btn.btn-warning:hover {
+    background-color: #ec971f;
+}
+
+.btn.btn-danger {
+    background-color: #d9534f;
+    float: right;
+    margin-right: 0
+}
+
+.btn.btn-danger:active {
+    background-color: #c9302c;
+    background-image: none;
+}
+
+.btn.btn-danger:hover {
+    background-color: #c9302c;
+}
+
+span.js {
+    margin-left: 15px;
+    cursor: pointer;
+    color: #7a8b9f;
+    border-bottom: 1px dashed #7a8b9f;
+}
+
+span.js:hover {
+    border-bottom: none
+}

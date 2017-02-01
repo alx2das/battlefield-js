@@ -1,0 +1,89 @@
+.bf-logger {
+    max-width: 950px;
+    margin: 0 auto;
+}
+
+.bf-logger h2 {
+    padding: 0 15px 15px 15px;
+}
+
+.bf-logger ul {
+    list-style: none;
+    padding: 0 15px;
+    height: 300px;
+    overflow-y: auto;
+}
+
+.bf-logger ul li {
+    display: block;
+    padding: 7px 0;
+    border-bottom: 1px solid #d6d6d6;
+}
+
+.bf-logger ul li.no-active {
+    display: none;
+}
+
+.bf-logger ul li:hover {
+    background-color: #f6f6f6
+}
+
+.game-log ul li:last-child {
+    border-bottom: none;
+}
+
+.bf-logger ul li .point, .bf-logger ul li .type, .bf-logger ul li .time {
+    width: 60px;
+    display: inline-block;
+}
+
+.bf-logger ul li .point, .bf-logger ul li .time {
+    font-weight: 700
+}
+
+.bf-logger ul li .point {
+}
+
+.bf-logger ul li .type {
+    margin: 0 10px;
+    font-size: 12px;
+    padding: 2px 0;
+    text-align: center;
+    border-radius: 2px;
+    font-weight: 700;
+}
+
+.bf-logger ul li .type.kil {
+    background-color: #d9534f;
+    color: #fff;
+}
+
+.bf-logger ul li .type.war {
+    background-color: #f0ad4e;
+    color: #fff;
+}
+
+.bf-logger ul li .type.nul {
+}
+
+.bf-logger ul li .name {
+    font-size: 14px
+}
+
+.bf-logger ul li .time {
+    float: right;
+}
+
+.bf-logger .bf-filter {
+    float: right;
+    font-weight: 400;
+    font-size: 13px;
+}
+
+.bf-logger .bf-filter.no-active {
+    display: none;
+}
+
+.bf-logger .bf-filter span.active {
+    border-bottom: 1px solid;
+}

@@ -1,0 +1,63 @@
+.bf-player-name {
+    text-align: center;
+    width: 950px;
+    margin: 0 auto
+}
+
+.bf-player-name span {
+    display: inline-block;
+    padding: 0 10px;
+    font-size: 14px;
+}
+
+.bf-player-name .name {
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.bf-player-name .name.act {
+    color: #09ab00
+}
+
+.bf-player-name .total {
+    display: inline-block;
+    min-width: 30px;
+    padding: 3px;
+    border-radius: 2px;
+    overflow: hidden;
+    background-color: #7a8b9f;
+    margin-bottom: -6px;
+    text-align: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px
+}
+
+.bf-player-name .opt {
+    float: left
+}
+
+.bf-player-name .left {
+    float: left;
+    margin-top: -5px
+}
+
+.bf-player-name .center {
+    width: 450px;
+    margin: 0 auto
+}
+
+.bf-player-name .right {
+    float: right
+}
+
+.bf-player-name .left a {
+    color: #7a8b9f;
+    font-weight: 700;
+    font-size: 26px;
+    text-decoration: none;
+}
+
+.bf-player-name .right span {
+    padding: 0
+}

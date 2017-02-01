@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Battlefield JS</title>
+    <meta charset="UTF-8"/>
+
+    <link rel="stylesheet" href="../src/css/battlefield.global.css" />
+    <link rel="stylesheet" href="../src/css/battlefield.helper.css" />
+    <link rel="stylesheet" href="../src/css/battlefield.player-name.css" />
+    <link rel="stylesheet" href="../src/css/battlefield.fields.css" />
+    <link rel="stylesheet" href="../src/css/battlefield.logger.css" />
+    <link rel="stylesheet" href="../src/css/battlefield.modal-window.css" />
+</head>
+<body>
+
+<div id="battlefield-box"></div>
+
+<script src="../src/js/battlefield.options.js"></script>
+<script src="../src/js/battlefield.helper.js"></script>
+<script src="../src/js/battlefield.class-field.js"></script>
+<script src="../src/js/battlefield.class-gameui.js"></script>
+<script src="../src/js/battlefield.class-battle.js"></script>
+<script src="../src/js/battlefield.class-battlefield.js"></script>
+
+<script type="text/javascript">
+    var BF = new Battlefield('#battlefield-box');
+    BF.setLevel('easy').run();
+</script>
+
+</body>
+</html>
