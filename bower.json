@@ -1,5 +1,5 @@
 {
-  "name": "Battlefield Game",
+  "name": "battlefield-js",
   "description": "This is classic game Battlefield for browsers, implemented on language JavaScript.",
   "main": "examples/index.html",
   "authors": [
@@ -8,7 +8,9 @@
   "license": "ISC",
   "keywords": [
     "battlefield",
-    "javascript"
+    "javascript",
+    "gulp",
+    "jasmine"
   ],
   "homepage": "https://github.com/alx2das/battlefield-js",
   "ignore": [
@@ -18,7 +20,7 @@
     "test",
     "tests"
   ],
-  "devDependencies": {
+  "dependencies": {
     "jasmine-core": "jasmine#^2.5.2"
   }
 }

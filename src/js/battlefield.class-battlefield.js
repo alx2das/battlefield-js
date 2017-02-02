@@ -28,8 +28,6 @@
         else options = Object.assign(_optionsPublic, _optionsPrivate);
 
         options.htmlSelector = document.querySelector(htmlSelector);
-
-        this.setLevel(_globalLevel);
     }
 
     /**
