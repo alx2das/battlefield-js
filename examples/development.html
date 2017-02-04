@@ -13,7 +13,38 @@
 </head>
 <body>
 
-<div id="battlefield-box"></div>
+<div class="container">
+    <div class="wrap">
+        <div class="ctn-header">
+            <div class="logotype">
+                Battlefield-js
+                <small>v1.0.0</small>
+            </div>
+            <div class="soc-btn">
+                <div
+                        class="ya-share2"
+                        data-services="vkontakte,facebook,odnoklassniki,moimir,gplus"
+                        data-counter=""
+                        data-title="Морской бой на JavaScript"
+                        data-description="Игра Battlefield-js для современных браузеров"
+                        data-image="../src/img/battlefield-js.jpg"
+                ></div>
+            </div>
+        </div>
+    </div>
+    <div id="battlefield-box"></div>
+    <div class="clear-footer"></div>
+</div>
+<div class="wrap">
+    <div class="ctn-footer">
+        <div class="copy">
+            &copy; 2017, Alexandr Builov
+        </div>
+        <div class="file">
+            <a href="https://github.com/alx2das/battlefield-js/" target="_blank">gitthub.com</a>
+        </div>
+    </div>
+</div>
 
 <script src="../src/js/battlefield.options.js"></script>
 <script src="../src/js/battlefield.helper.js"></script>
@@ -24,8 +55,11 @@
 
 <script type="text/javascript">
     var BF = new Battlefield('#battlefield-box');
-    BF.setLevel('easy').run();
+    BF.setLevel('middle').run();
 </script>
+
+<script src="//yastatic.net/es5-shims/0.0.2/es5-shims.min.js"></script>
+<script src="//yastatic.net/share2/share.js"></script>
 
 </body>
 </html>

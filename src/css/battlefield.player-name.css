@@ -7,30 +7,31 @@
 .bf-player-name span {
     display: inline-block;
     padding: 0 10px;
-    font-size: 14px;
+    font-size: 15px;
+    height: 24px;
+    line-height: 24px;
 }
 
 .bf-player-name .name {
-    font-weight: 700;
-    font-size: 15px;
+    width: 120px;
+    background: #7a8b9f;
+    color: #fff;
+    margin: 0 10px 0 6px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    height: auto;
+    line-height: 1.1;
 }
 
 .bf-player-name .name.act {
-    color: #09ab00
+    background: #f0ad4e;
 }
 
 .bf-player-name .total {
-    display: inline-block;
     min-width: 30px;
-    padding: 3px;
-    border-radius: 2px;
-    overflow: hidden;
-    background-color: #7a8b9f;
-    margin-bottom: -6px;
     text-align: center;
-    color: #fff;
+    color: #7a8b9f;
     font-weight: 700;
-    font-size: 12px
 }
 
 .bf-player-name .opt {
@@ -43,8 +44,14 @@
 }
 
 .bf-player-name .center {
-    width: 450px;
+    width: 460px;
     margin: 0 auto
+}
+
+.bf-player-name .center:after {
+    content: " ";
+    clear: both;
+    display: block;
 }
 
 .bf-player-name .right {

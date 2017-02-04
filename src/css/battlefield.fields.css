@@ -145,7 +145,19 @@
 }
 
 .bf-fields .board.rg table.field td .box {
-    cursor: crosshair
+    cursor: pointer;
+}
+
+.bf-fields .board.rg table.field td .box:hover {
+    box-shadow: inset 0 0 5px 2px #ff8d8d;
+}
+
+.bf-fields .board.rg table.field td .box.kill:hover,
+.bf-fields .board.rg table.field td .box.let:hover,
+.bf-fields .board.rg table.field td .box.null:hover,
+.bf-fields .board.rg table.field td .box.auto-null:hover {
+    box-shadow: none !important;
+    cursor: default !important;
 }
 
 .bf-fields .board table.field.timeout {

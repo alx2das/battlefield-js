@@ -17,9 +17,6 @@
 
         var self = this;
         var playerName =
-            '<div class="left">' +
-            '   <a href="#">Battlefield</a>' +
-            '</div>' +
             '<div class="right">' +
             '   <span class="js" id="new_game">' + h.getMessage('new_game') + '</span>' +
             '   <span class="js" id="config">' + h.getMessage('options') + '</span>' +
