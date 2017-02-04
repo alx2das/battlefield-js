@@ -142,7 +142,8 @@ function description() {
         ' * ' + pkg.description + '\n' +
         ' * \n' +
         ' * repository: ' + pkg.repository.url + '\n' +
-        ' * bugs: ' + pkg.repository + '\n' +
+        ' * bugs: ' + pkg.repository.url + '\n' +
+        ' * homepage: ' + pkg.homepage + '\n' +
         ' * \n' +
         ' * Copyright 2017, ' + pkg.author + '\n' +
         ' * Date: ' + new Date().toDateString() + '\n' +
