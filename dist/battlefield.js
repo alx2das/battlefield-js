@@ -3,7 +3,8 @@
  * This is classic game Battlefield for browsers, implemented on language JavaScript.
  * 
  * repository: git+https://github.com/alx2das/battlefield-js.git
- * bugs: [object Object]
+ * bugs: git+https://github.com/alx2das/battlefield-js.git
+ * homepage: https://alx2das.github.io/battlefield-js/examples/
  * 
  * Copyright 2017, Alexandr Builov
  * Date: Sat Feb 04 2017
@@ -813,9 +814,6 @@
 
         var self = this;
         var playerName =
-            '<div class="left">' +
-            '   <a href="#">Battlefield</a>' +
-            '</div>' +
             '<div class="right">' +
             '   <span class="js" id="new_game">' + h.getMessage('new_game') + '</span>' +
             '   <span class="js" id="config">' + h.getMessage('options') + '</span>' +
