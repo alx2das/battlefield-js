@@ -79,6 +79,20 @@ gulp.task('min', function (callback) {
     );
 });
 
+// добавляем метрику
+gulp.task('metrika', function () {
+    return gulp
+        .src([
+            'dist/battlefield.js',
+            'src/js/metrika.js'
+        ])
+        .on('data', function (file) {
+            file.contents = new Buffer(file.contents.toString() + '\n');
+        })
+        .pipe(concat('battlefield.js'))
+        .pipe(gulp.dest('dist'));
+});
+
 // минификация JS файлов
 gulp.task('min:js', function () {
     return gulp
@@ -114,6 +128,7 @@ gulp.task('default', function (callback) {
     runSequence(
         'clean',
         'concat',
+        'metrika',
         'min',
         callback
     );

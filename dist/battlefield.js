@@ -6,7 +6,7 @@
  * bugs: [object Object]
  * 
  * Copyright 2017, Alexandr Builov
- * Date: Wed Feb 01 2017
+ * Date: Sat Feb 04 2017
  */
 (function(window){   
    "use strict";   
@@ -22,7 +22,7 @@
                 h: 15, v: 15                                        // h - горизонтально, v - вертикально
             },
             fBarrier: [                                             // список кораблей на игровом поле
-                [5, 2], [4, 3], [3, 4], [2, 5]                      // по принципу: ["кол-во палуб", "кол-во штук"]
+                [5, 2], [4, 3], [3, 4], [2, 5], [1, 6]              // по принципу: ["кол-во палуб", "кол-во штук"]
             ],
             fMarker: {                                              // обозначение ячеек
                 h: 'number', v: 'char'                              // могут быть: char или number
@@ -71,8 +71,6 @@
         else options = Object.assign(_optionsPublic, _optionsPrivate);
 
         options.htmlSelector = document.querySelector(htmlSelector);
-
-        this.setLevel(_globalLevel);
     }
 
     /**
@@ -1602,3 +1600,32 @@
    
    window.Battlefield = Battlefield;   
 })(window);
+
+(function (d, w, c) {
+    (w[c] = w[c] || []).push(function () {
+        try {
+            w.yaCounter42568409 = new Ya.Metrika({
+                id: 42568409,
+                clickmap: true,
+                trackLinks: true,
+                accurateTrackBounce: true
+            });
+        } catch (e) {
+        }
+    });
+
+    var n = d.getElementsByTagName("script")[0],
+        s = d.createElement("script"),
+        f = function () {
+            n.parentNode.insertBefore(s, n);
+        };
+    s.type = "text/javascript";
+    s.async = true;
+    s.src = "https://mc.yandex.ru/metrika/watch.js";
+
+    if (w.opera == "[object Opera]") {
+        d.addEventListener("DOMContentLoaded", f, false);
+    } else {
+        f();
+    }
+})(document, window, "yandex_metrika_callbacks");
