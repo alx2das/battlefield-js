@@ -1,6 +1,6 @@
 {
   "name": "battlefield-js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "This is classic game Battlefield for browsers, implemented on language JavaScript.",
   "main": "examples/index.html",
   "directories": {

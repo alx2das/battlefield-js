@@ -1,5 +1,5 @@
 /**
- * battlefield-js v1.0.0
+ * battlefield-js v1.0.1
  * This is classic game Battlefield for browsers, implemented on language JavaScript.
  * 
  * repository: git+https://github.com/alx2das/battlefield-js.git
@@ -7,7 +7,7 @@
  * homepage: https://alx2das.github.io/battlefield-js/examples/
  * 
  * Copyright 2017, Alexandr Builov
- * Date: Sat Feb 04 2017
+ * Date: Sun Feb 05 2017
  */
 (function(window){   
    "use strict";   
@@ -575,7 +575,7 @@
 
         setTimeout(function () {
             self.shot(point, fKey);
-        }, 300);
+        }, 600);
 
 
         // private method....................
@@ -597,8 +597,10 @@
             if (point instanceof Array && point[0] !== 'undefined' && point[1] !== 'undefined') {
                 var X = point[0], Y = point[1];
                 if (X >= 0 && X < options.fSize.v && Y >= 0 && Y < options.fSize.h) {
-                    if (field[X][Y] !== tPoint.NUL || field[X][Y] !== tPoint.BAR)
-                        return point;
+                    if (field[X][Y] == tPoint.NUL || field[X][Y] == tPoint.KIL) {
+                        // уже стреляли в эту точку
+                    }
+                    else return point;
                 }
             }
 
