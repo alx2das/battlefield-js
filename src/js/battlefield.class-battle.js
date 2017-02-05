@@ -123,7 +123,7 @@
 
         setTimeout(function () {
             self.shot(point, fKey);
-        }, 300);
+        }, 600);
 
 
         // private method....................
@@ -145,8 +145,10 @@
             if (point instanceof Array && point[0] !== 'undefined' && point[1] !== 'undefined') {
                 var X = point[0], Y = point[1];
                 if (X >= 0 && X < options.fSize.v && Y >= 0 && Y < options.fSize.h) {
-                    if (field[X][Y] !== tPoint.NUL || field[X][Y] !== tPoint.BAR)
-                        return point;
+                    if (field[X][Y] == tPoint.NUL || field[X][Y] == tPoint.KIL) {
+                        // уже стреляли в эту точку
+                    }
+                    else return point;
                 }
             }
 
